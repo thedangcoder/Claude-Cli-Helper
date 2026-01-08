@@ -1,4 +1,4 @@
-"""Commands quản lý MCP servers."""
+"""Commands to manage MCP servers."""
 
 import click
 from rich.console import Console
@@ -13,17 +13,17 @@ manager = SettingsManager()
 
 @click.group()
 def mcp() -> None:
-    """Quản lý MCP servers configuration."""
+    """Manage MCP servers configuration."""
     pass
 
 
 @mcp.command()
 def list() -> None:
-    """Liệt kê các MCP servers đã cấu hình."""
+    """List configured MCP servers."""
     config = manager.read_mcp_config()
 
     if not config.mcpServers:
-        console.print("[yellow]Chưa có MCP server nào được cấu hình[/yellow]")
+        console.print("[yellow]No MCP servers configured[/yellow]")
         return
 
     table = Table(title="MCP Servers")
@@ -40,10 +40,10 @@ def list() -> None:
 @mcp.command()
 @click.argument("name")
 @click.argument("command")
-@click.option("--args", "-a", multiple=True, help="Arguments cho server")
+@click.option("--args", "-a", multiple=True, help="Arguments for server")
 @click.option("--env", "-e", multiple=True, help="Environment variables (KEY=VALUE)")
 def add(name: str, command: str, args: tuple[str, ...], env: tuple[str, ...]) -> None:
-    """Thêm một MCP server."""
+    """Add an MCP server."""
     config = manager.read_mcp_config()
 
     # Parse env vars
@@ -57,20 +57,20 @@ def add(name: str, command: str, args: tuple[str, ...], env: tuple[str, ...]) ->
     config.mcpServers[name] = server
 
     manager.write_mcp_config(config)
-    console.print(f"[green]Đã thêm MCP server '{name}'[/green]")
+    console.print(f"[green]Added MCP server '{name}'[/green]")
 
 
 @mcp.command()
 @click.argument("name")
 def remove(name: str) -> None:
-    """Xóa một MCP server."""
+    """Remove an MCP server."""
     config = manager.read_mcp_config()
 
     if name not in config.mcpServers:
-        console.print(f"[red]MCP server '{name}' không tồn tại[/red]")
+        console.print(f"[red]MCP server '{name}' does not exist[/red]")
         return
 
     del config.mcpServers[name]
     manager.write_mcp_config(config)
 
-    console.print(f"[green]Đã xóa MCP server '{name}'[/green]")
+    console.print(f"[green]Removed MCP server '{name}'[/green]")

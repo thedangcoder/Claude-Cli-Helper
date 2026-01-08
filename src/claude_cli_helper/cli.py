@@ -15,10 +15,10 @@ console = Console()
 @click.group()
 @click.version_option(version=__version__, prog_name="claude-helper")
 def main() -> None:
-    """Claude CLI Helper - Thiết lập Claude settings nhanh hơn.
+    """Claude CLI Helper - Setup Claude settings faster.
 
-    Tool giúp quản lý settings, MCP servers, và profiles cho Claude Desktop
-    và Claude Code CLI.
+    Tool to manage settings, MCP servers, and profiles for Claude Desktop
+    and Claude Code CLI.
     """
     pass
 
@@ -32,14 +32,14 @@ main.add_command(profile)
 
 @main.command()
 def info() -> None:
-    """Hiển thị thông tin về Claude CLI Helper."""
+    """Display information about Claude CLI Helper."""
     console.print(f"[bold cyan]Claude CLI Helper[/bold cyan] v{__version__}")
-    console.print("\nTool giúp quản lý Claude settings một cách nhanh chóng.")
+    console.print("\nTool to manage Claude settings quickly.")
     console.print("\n[bold]Commands:[/bold]")
-    console.print("  settings  - Quản lý Claude settings")
-    console.print("  mcp       - Quản lý MCP servers")
+    console.print("  settings  - Manage Claude settings")
+    console.print("  mcp       - Manage MCP servers")
     console.print("  backup    - Backup/Restore settings")
-    console.print("  profile   - Apply settings profiles có sẵn")
+    console.print("  profile   - Apply preset settings profiles")
 
 
 if __name__ == "__main__":

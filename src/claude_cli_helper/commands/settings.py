@@ -1,4 +1,4 @@
-"""Commands quản lý settings."""
+"""Commands to manage settings."""
 
 import click
 from rich.console import Console
@@ -12,13 +12,13 @@ manager = SettingsManager()
 
 @click.group()
 def settings() -> None:
-    """Quản lý Claude settings."""
+    """Manage Claude settings."""
     pass
 
 
 @settings.command()
 def show() -> None:
-    """Hiển thị settings hiện tại."""
+    """Show current settings paths."""
     table = Table(title="Claude Settings Paths")
     table.add_column("Type", style="cyan")
     table.add_column("Path", style="green")
@@ -27,17 +27,17 @@ def show() -> None:
     table.add_row(
         "Claude Desktop",
         str(manager.settings_path),
-        "✓" if manager.settings_path.exists() else "✗",
+        "Y" if manager.settings_path.exists() else "N",
     )
     table.add_row(
         "MCP Config",
         str(manager.mcp_path),
-        "✓" if manager.mcp_path.exists() else "✗",
+        "Y" if manager.mcp_path.exists() else "N",
     )
     table.add_row(
         "Claude Code",
         str(manager.claude_code_path),
-        "✓" if manager.claude_code_path.exists() else "✗",
+        "Y" if manager.claude_code_path.exists() else "N",
     )
 
     console.print(table)
@@ -47,7 +47,7 @@ def show() -> None:
 @click.argument("key")
 @click.argument("value")
 def set(key: str, value: str) -> None:
-    """Đặt một setting value."""
+    """Set a setting value."""
     settings_obj = manager.read_claude_code_settings()
 
     # Parse value
@@ -60,17 +60,17 @@ def set(key: str, value: str) -> None:
     setattr(settings_obj, key, parsed_value)
     manager.write_claude_code_settings(settings_obj)
 
-    console.print(f"[green]Đã đặt {key} = {parsed_value}[/green]")
+    console.print(f"[green]Set {key} = {parsed_value}[/green]")
 
 
 @settings.command()
 @click.argument("key")
 def get(key: str) -> None:
-    """Lấy một setting value."""
+    """Get a setting value."""
     settings_obj = manager.read_claude_code_settings()
 
     if hasattr(settings_obj, key):
         value = getattr(settings_obj, key)
         console.print(f"[cyan]{key}[/cyan] = [green]{value}[/green]")
     else:
-        console.print(f"[red]Setting '{key}' không tồn tại[/red]")
+        console.print(f"[red]Setting '{key}' does not exist[/red]")

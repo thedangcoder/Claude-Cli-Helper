@@ -1,11 +1,11 @@
-"""Built-in profiles cho Claude settings."""
+"""Built-in profiles for Claude settings."""
 
 from ..models import ClaudeCodeSettings, MCPConfig, MCPServer, SettingsProfile
 
-# Profile cho developer với auto-approve read files
+# Profile for developers with auto-approve read files
 DEVELOPER_PROFILE = SettingsProfile(
     name="developer",
-    description="Profile cho developer - auto approve đọc files",
+    description="Developer profile - auto approve read files",
     claude_code_settings=ClaudeCodeSettings(
         autoApproveRead=True,
         autoApproveWrite=False,
@@ -13,10 +13,10 @@ DEVELOPER_PROFILE = SettingsProfile(
     ),
 )
 
-# Profile cho power user với nhiều auto-approve hơn
+# Profile for power users with more auto-approve
 POWER_USER_PROFILE = SettingsProfile(
     name="power-user",
-    description="Profile cho power user - auto approve read và write",
+    description="Power user profile - auto approve read and write",
     claude_code_settings=ClaudeCodeSettings(
         autoApproveRead=True,
         autoApproveWrite=True,
@@ -24,10 +24,10 @@ POWER_USER_PROFILE = SettingsProfile(
     ),
 )
 
-# Profile với MCP filesystem server
+# Profile with MCP filesystem server
 FILESYSTEM_MCP_PROFILE = SettingsProfile(
     name="filesystem-mcp",
-    description="Profile với MCP filesystem server",
+    description="Profile with MCP filesystem server",
     mcp_config=MCPConfig(
         mcpServers={
             "filesystem": MCPServer(
@@ -38,10 +38,10 @@ FILESYSTEM_MCP_PROFILE = SettingsProfile(
     ),
 )
 
-# Profile với MCP GitHub server
+# Profile with MCP GitHub server
 GITHUB_MCP_PROFILE = SettingsProfile(
     name="github-mcp",
-    description="Profile với MCP GitHub server",
+    description="Profile with MCP GitHub server",
     mcp_config=MCPConfig(
         mcpServers={
             "github": MCPServer(
@@ -53,10 +53,10 @@ GITHUB_MCP_PROFILE = SettingsProfile(
     ),
 )
 
-# Profile minimal - reset về mặc định
+# Minimal profile - reset to defaults
 MINIMAL_PROFILE = SettingsProfile(
     name="minimal",
-    description="Profile minimal - tất cả settings về mặc định",
+    description="Minimal profile - reset all settings to defaults",
     claude_code_settings=ClaudeCodeSettings(
         autoApproveAll=False,
         autoApproveRead=False,
@@ -75,5 +75,5 @@ BUILTIN_PROFILES: dict[str, SettingsProfile] = {
 
 
 def get_profile(name: str) -> SettingsProfile | None:
-    """Lấy profile theo tên."""
+    """Get profile by name."""
     return BUILTIN_PROFILES.get(name)

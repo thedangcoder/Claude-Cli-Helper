@@ -1,4 +1,4 @@
-"""Commands quản lý profiles."""
+"""Commands to manage profiles."""
 
 import click
 from rich.console import Console
@@ -13,13 +13,13 @@ manager = SettingsManager()
 
 @click.group()
 def profile() -> None:
-    """Quản lý và apply settings profiles."""
+    """Manage and apply settings profiles."""
     pass
 
 
 @profile.command()
 def list() -> None:
-    """Liệt kê các profiles có sẵn."""
+    """List available profiles."""
     table = Table(title="Available Profiles")
     table.add_column("Name", style="cyan")
     table.add_column("Description", style="green")
@@ -33,11 +33,11 @@ def list() -> None:
 @profile.command()
 @click.argument("name")
 def show(name: str) -> None:
-    """Hiển thị chi tiết một profile."""
+    """Show profile details."""
     p = get_profile(name)
 
     if not p:
-        console.print(f"[red]Profile '{name}' không tồn tại[/red]")
+        console.print(f"[red]Profile '{name}' does not exist[/red]")
         return
 
     console.print(f"[bold cyan]{p.name}[/bold cyan]")
@@ -56,29 +56,29 @@ def show(name: str) -> None:
 
 @profile.command()
 @click.argument("name")
-@click.option("--backup/--no-backup", default=True, help="Tạo backup trước khi apply")
+@click.option("--backup/--no-backup", default=True, help="Create backup before applying")
 def apply(name: str, backup: bool) -> None:
-    """Apply một profile."""
+    """Apply a profile."""
     p = get_profile(name)
 
     if not p:
-        console.print(f"[red]Profile '{name}' không tồn tại[/red]")
+        console.print(f"[red]Profile '{name}' does not exist[/red]")
         return
 
     if backup:
         backup_path = manager.create_backup(f"before_{name}")
-        console.print(f"[dim]Đã tạo backup: {backup_path}[/dim]")
+        console.print(f"[dim]Created backup: {backup_path}[/dim]")
 
     if p.claude_code_settings:
         manager.write_claude_code_settings(p.claude_code_settings)
-        console.print("[green]✓ Đã apply Claude Code settings[/green]")
+        console.print("[green]+ Applied Claude Code settings[/green]")
 
     if p.mcp_config:
         manager.write_mcp_config(p.mcp_config)
-        console.print("[green]✓ Đã apply MCP config[/green]")
+        console.print("[green]+ Applied MCP config[/green]")
 
     if p.claude_settings:
         manager.write_settings(p.claude_settings)
-        console.print("[green]✓ Đã apply Claude Desktop settings[/green]")
+        console.print("[green]+ Applied Claude Desktop settings[/green]")
 
-    console.print(f"\n[bold green]Đã apply profile '{name}' thành công![/bold green]")
+    console.print(f"\n[bold green]Successfully applied profile '{name}'![/bold green]")

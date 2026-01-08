@@ -1,4 +1,4 @@
-"""Commands backup/restore."""
+"""Commands for backup/restore."""
 
 import click
 from rich.console import Console
@@ -12,28 +12,28 @@ manager = SettingsManager()
 
 @click.group()
 def backup() -> None:
-    """Quản lý backup và restore settings."""
+    """Manage backup and restore settings."""
     pass
 
 
 @backup.command()
-@click.option("--name", "-n", help="Tên backup (mặc định: timestamp)")
+@click.option("--name", "-n", help="Backup name (default: timestamp)")
 def create(name: str | None) -> None:
-    """Tạo backup settings hiện tại."""
+    """Create a backup of current settings."""
     try:
         backup_path = manager.create_backup(name)
-        console.print(f"[green]Đã tạo backup tại: {backup_path}[/green]")
+        console.print(f"[green]Created backup at: {backup_path}[/green]")
     except Exception as e:
-        console.print(f"[red]Lỗi tạo backup: {e}[/red]")
+        console.print(f"[red]Error creating backup: {e}[/red]")
 
 
 @backup.command()
 def list() -> None:
-    """Liệt kê các backup hiện có."""
+    """List existing backups."""
     backups = manager.list_backups()
 
     if not backups:
-        console.print("[yellow]Chưa có backup nào[/yellow]")
+        console.print("[yellow]No backups found[/yellow]")
         return
 
     table = Table(title="Backups")
@@ -47,13 +47,13 @@ def list() -> None:
 
 @backup.command()
 @click.argument("name")
-@click.confirmation_option(prompt="Bạn có chắc muốn restore backup này?")
+@click.confirmation_option(prompt="Are you sure you want to restore this backup?")
 def restore(name: str) -> None:
-    """Khôi phục settings từ backup."""
+    """Restore settings from a backup."""
     try:
         manager.restore_backup(name)
-        console.print(f"[green]Đã restore backup '{name}'[/green]")
+        console.print(f"[green]Restored backup '{name}'[/green]")
     except FileNotFoundError as e:
         console.print(f"[red]{e}[/red]")
     except Exception as e:
-        console.print(f"[red]Lỗi restore: {e}[/red]")
+        console.print(f"[red]Error restoring: {e}[/red]")
