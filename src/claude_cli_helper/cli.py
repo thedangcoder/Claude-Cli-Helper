@@ -8,6 +8,7 @@ from .commands.backup import backup
 from .commands.mcp import mcp
 from .commands.profile import profile
 from .commands.settings import settings
+from .commands.setup import setup
 
 console = Console()
 
@@ -24,6 +25,7 @@ def main() -> None:
 
 
 # Register command groups
+main.add_command(setup)
 main.add_command(settings)
 main.add_command(mcp)
 main.add_command(backup)
@@ -36,6 +38,7 @@ def info() -> None:
     console.print(f"[bold cyan]Claude CLI Helper[/bold cyan] v{__version__}")
     console.print("\nTool to manage Claude settings quickly.")
     console.print("\n[bold]Commands:[/bold]")
+    console.print("  setup     - Interactive setup wizard")
     console.print("  settings  - Manage Claude settings")
     console.print("  mcp       - Manage MCP servers")
     console.print("  backup    - Backup/Restore settings")
