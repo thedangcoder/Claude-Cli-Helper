@@ -14,17 +14,18 @@ console = Console()
 manager = SettingsManager()
 
 # Predefined notification commands for different platforms
+# Windows commands use -NoProfile -ExecutionPolicy Bypass to avoid profile loading and script policy errors
 NOTIFICATION_PRESETS = {
     "windows": {
-        "beep": 'powershell -Command "[console]::beep(1000,500)"',
+        "beep": 'powershell -NoProfile -ExecutionPolicy Bypass -Command "[console]::beep(1000,500)"',
         "toast": (
-            'powershell -Command "'
+            'powershell -NoProfile -ExecutionPolicy Bypass -Command "'
             "Add-Type -AssemblyName System.Windows.Forms; "
             "[System.Windows.Forms.MessageBox]::Show('Claude Code task completed!', 'Notification')"
             '"'
         ),
         "sound": (
-            'powershell -Command "'
+            'powershell -NoProfile -ExecutionPolicy Bypass -Command "'
             "(New-Object Media.SoundPlayer 'C:\\Windows\\Media\\notify.wav').PlaySync()"
             '"'
         ),
