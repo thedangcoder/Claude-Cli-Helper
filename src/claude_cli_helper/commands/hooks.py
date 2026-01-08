@@ -74,18 +74,35 @@ def _get_windows_sounds() -> list[str]:
     return sorted([f.name for f in WINDOWS_MEDIA_DIR.glob("*.wav")])
 
 
-def _build_sound_command(sound_file: str) -> str:
-    """Build PowerShell command to play a sound file."""
+def _build_sound_command(sound_file: str, volume: int = 100) -> str:
+    """Build PowerShell command to play a sound file with volume control.
+
+    Args:
+        sound_file: Name of the sound file in Windows Media directory
+        volume: Volume level from 0 to 100 (default: 100)
+    """
+    import base64
+
     sound_path = WINDOWS_MEDIA_DIR / sound_file
-    return (
-        f'powershell -NoProfile -ExecutionPolicy Bypass -Command "'
-        f"(New-Object Media.SoundPlayer '{sound_path}').PlaySync()"
-        f'"'
-    )
+    vol = volume / 100  # Convert to 0.0-1.0 scale
+
+    # PowerShell script using MediaPlayer for volume control
+    ps_script = f"""
+Add-Type -AssemblyName PresentationCore
+$p = New-Object System.Windows.Media.MediaPlayer
+$p.Open([uri]"{sound_path}")
+Start-Sleep -Milliseconds 300
+$p.Volume = {vol}
+$p.Play()
+Start-Sleep -Milliseconds 2000
+"""
+    # Encode script as base64 to avoid escaping issues
+    encoded = base64.b64encode(ps_script.encode("utf-16-le")).decode("ascii")
+    return f"powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}"
 
 
 def _select_windows_sound_interactive(custom_style: object) -> str | None:
-    """Interactive Windows sound selection."""
+    """Interactive Windows sound selection with volume control."""
     import subprocess
 
     import questionary
@@ -106,9 +123,28 @@ def _select_windows_sound_interactive(custom_style: object) -> str | None:
     if not selected:
         return None
 
+    # Ask for volume
+    volume_choices = [
+        questionary.Choice("100% (Full)", value=100),
+        questionary.Choice("75%", value=75),
+        questionary.Choice("50%", value=50),
+        questionary.Choice("25%", value=25),
+        questionary.Choice("10% (Quiet)", value=10),
+    ]
+
+    volume = questionary.select(
+        "Select volume level:",
+        choices=volume_choices,
+        default="50%",
+        style=custom_style,
+    ).ask()
+
+    if volume is None:
+        return None
+
     # Preview the sound
-    command = _build_sound_command(selected)
-    console.print(f"[dim]Playing: {selected}[/dim]")
+    command = _build_sound_command(selected, volume)
+    console.print(f"[dim]Playing: {selected} at {volume}% volume[/dim]")
     subprocess.run(command, shell=True, check=True)
 
     return command
@@ -435,11 +471,31 @@ def sounds() -> None:
             console.print("[yellow]Cancelled.[/yellow]")
             return
 
+        # Ask for volume
+        volume_choices = [
+            questionary.Choice("100% (Full)", value=100),
+            questionary.Choice("75%", value=75),
+            questionary.Choice("50%", value=50),
+            questionary.Choice("25%", value=25),
+            questionary.Choice("10% (Quiet)", value=10),
+        ]
+
+        volume = questionary.select(
+            "Select volume level:",
+            choices=volume_choices,
+            default="50%",
+            style=custom_style,
+        ).ask()
+
+        if volume is None:
+            console.print("[yellow]Cancelled.[/yellow]")
+            return
+
         # Test the sound
         import subprocess
 
-        command = _build_sound_command(selected)
-        console.print(f"\n[dim]Testing: {selected}[/dim]")
+        command = _build_sound_command(selected, volume)
+        console.print(f"\n[dim]Testing: {selected} at {volume}% volume[/dim]")
         subprocess.run(command, shell=True, check=True)
 
         # Ask to add as hook
@@ -458,7 +514,7 @@ def sounds() -> None:
             settings.hooks.postToolUse.append(hook)
             manager.write_claude_code_settings(settings)
 
-            console.print(f"[green]Added hook with sound: {selected}[/green]")
+            console.print(f"[green]Added hook with sound: {selected} at {volume}% volume[/green]")
         else:
             console.print("[yellow]Sound not added.[/yellow]")
 
