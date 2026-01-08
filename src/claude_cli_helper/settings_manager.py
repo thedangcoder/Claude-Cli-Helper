@@ -104,7 +104,16 @@ class SettingsManager:
                 shutil.copy2(src, dest_path)
 
     def list_backups(self) -> list[str]:
-        """Liệt kê tất cả backups."""
+        """List all backups."""
         if not self.backup_dir.exists():
             return []
         return [d.name for d in self.backup_dir.iterdir() if d.is_dir()]
+
+    def delete_backup(self, backup_name: str) -> None:
+        """Delete a backup."""
+        backup_path = self.backup_dir / backup_name
+
+        if not backup_path.exists():
+            raise FileNotFoundError(f"Backup '{backup_name}' does not exist")
+
+        shutil.rmtree(backup_path)

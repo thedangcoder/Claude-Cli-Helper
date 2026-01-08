@@ -57,3 +57,17 @@ def restore(name: str) -> None:
         console.print(f"[red]{e}[/red]")
     except Exception as e:
         console.print(f"[red]Error restoring: {e}[/red]")
+
+
+@backup.command()
+@click.argument("name")
+@click.confirmation_option(prompt="Are you sure you want to delete this backup?")
+def delete(name: str) -> None:
+    """Delete a backup."""
+    try:
+        manager.delete_backup(name)
+        console.print(f"[green]Deleted backup '{name}'[/green]")
+    except FileNotFoundError as e:
+        console.print(f"[red]{e}[/red]")
+    except Exception as e:
+        console.print(f"[red]Error deleting: {e}[/red]")
