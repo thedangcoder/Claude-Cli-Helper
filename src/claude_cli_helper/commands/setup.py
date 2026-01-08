@@ -5,7 +5,9 @@ import sys
 import click
 from rich.console import Console
 
+from ..models import HookMatcher, HooksConfig
 from ..settings_manager import SettingsManager
+from .hooks import NOTIFICATION_PRESETS, _get_platform
 
 console = Console()
 manager = SettingsManager()
@@ -185,6 +187,42 @@ def _setup_interactive() -> None:
         if auth_token:
             env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token
 
+    # Notification hooks
+    console.print()
+    has_hooks = current.hooks and current.hooks.postToolUse
+    setup_hooks = questionary.confirm(
+        "Configure notification when tasks complete?",
+        default=not has_hooks,
+        style=custom_style,
+    ).ask()
+
+    if setup_hooks is None:
+        console.print("[yellow]Setup cancelled.[/yellow]")
+        return
+
+    notification_command: str | None = None
+    if setup_hooks:
+        plat = _get_platform()
+        presets = NOTIFICATION_PRESETS.get(plat, {})
+
+        notification_choice = questionary.select(
+            "Select notification type:",
+            choices=[
+                questionary.Choice("Beep sound", value="beep"),
+                questionary.Choice("Toast/Popup notification", value="toast"),
+                questionary.Choice("System sound", value="sound"),
+                questionary.Choice("No notification", value="none"),
+            ],
+            style=custom_style,
+        ).ask()
+
+        if notification_choice is None:
+            console.print("[yellow]Setup cancelled.[/yellow]")
+            return
+
+        if notification_choice != "none":
+            notification_command = presets.get(notification_choice)
+
     # Apply settings
     console.print()
     current.autoApproveRead = "read" in auto_approve_choices
@@ -196,6 +234,18 @@ def _setup_interactive() -> None:
     if env_vars:
         setattr(current, "env", env_vars)
 
+    # Apply notification hooks
+    if notification_command:
+        if not current.hooks:
+            current.hooks = HooksConfig()
+        # Clear existing Task hooks and add new one
+        current.hooks.postToolUse = [
+            h for h in current.hooks.postToolUse if h.matcher != "Task"
+        ]
+        current.hooks.postToolUse.append(
+            HookMatcher(matcher="Task", command=notification_command)
+        )
+
     # Confirm
     console.print("[bold]Summary:[/bold]")
     console.print(f"  Model: [green]{model}[/green]")
@@ -205,6 +255,8 @@ def _setup_interactive() -> None:
     console.print(f"  Auto-approve all: [green]{current.autoApproveAll}[/green]")
     if env_vars:
         console.print(f"  Environment variables: [green]{len(env_vars)} configured[/green]")
+    if notification_command:
+        console.print("  Notification: [green]enabled[/green]")
 
     console.print()
     confirm = questionary.confirm(
@@ -291,6 +343,35 @@ def _setup_fallback() -> None:
         if auth_token:
             env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token
 
+    # Notification hooks
+    console.print()
+    has_hooks = current.hooks and current.hooks.postToolUse
+    setup_hooks = click.confirm(
+        "Configure notification when tasks complete?",
+        default=not has_hooks,
+    )
+
+    notification_command: str | None = None
+    if setup_hooks:
+        plat = _get_platform()
+        presets = NOTIFICATION_PRESETS.get(plat, {})
+
+        console.print("\n[bold]Notification Type[/bold]")
+        console.print("  1. Beep sound")
+        console.print("  2. Toast/Popup notification")
+        console.print("  3. System sound")
+        console.print("  4. No notification")
+
+        notif_choice = click.prompt(
+            "  Select notification type (1-4)",
+            type=click.IntRange(1, 4),
+            default=1,
+        )
+
+        notif_map = {1: "beep", 2: "toast", 3: "sound"}
+        if notif_choice in notif_map:
+            notification_command = presets.get(notif_map[notif_choice])
+
     # Apply settings
     current.autoApproveRead = auto_read
     current.autoApproveWrite = auto_write
@@ -300,6 +381,18 @@ def _setup_fallback() -> None:
 
     if env_vars:
         setattr(current, "env", env_vars)
+
+    # Apply notification hooks
+    if notification_command:
+        if not current.hooks:
+            current.hooks = HooksConfig()
+        # Clear existing Task hooks and add new one
+        current.hooks.postToolUse = [
+            h for h in current.hooks.postToolUse if h.matcher != "Task"
+        ]
+        current.hooks.postToolUse.append(
+            HookMatcher(matcher="Task", command=notification_command)
+        )
 
     # Confirm
     console.print()
@@ -311,6 +404,8 @@ def _setup_fallback() -> None:
     console.print(f"  Auto-approve all: [green]{auto_all}[/green]")
     if env_vars:
         console.print(f"  Environment variables: [green]{len(env_vars)} configured[/green]")
+    if notification_command:
+        console.print("  Notification: [green]enabled[/green]")
 
     console.print()
     if click.confirm("Save these settings?", default=True):

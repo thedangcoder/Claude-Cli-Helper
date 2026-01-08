@@ -5,6 +5,7 @@ from rich.console import Console
 
 from . import __version__
 from .commands.backup import backup
+from .commands.hooks import hooks
 from .commands.mcp import mcp
 from .commands.profile import profile
 from .commands.settings import settings
@@ -30,6 +31,7 @@ main.add_command(settings)
 main.add_command(mcp)
 main.add_command(backup)
 main.add_command(profile)
+main.add_command(hooks)
 
 
 @main.command()
@@ -43,6 +45,7 @@ def info() -> None:
     console.print("  mcp       - Manage MCP servers")
     console.print("  backup    - Backup/Restore settings")
     console.print("  profile   - Apply preset settings profiles")
+    console.print("  hooks     - Manage notification hooks")
 
 
 if __name__ == "__main__":
