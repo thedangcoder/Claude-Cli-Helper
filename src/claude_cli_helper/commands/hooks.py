@@ -483,7 +483,6 @@ def sounds() -> None:
         volume = questionary.select(
             "Select volume level:",
             choices=volume_choices,
-            default="50%",
             style=custom_style,
         ).ask()
 
