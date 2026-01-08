@@ -5,7 +5,7 @@ import sys
 import click
 from rich.console import Console
 
-from ..models import HookMatcher, HooksConfig
+from ..models import HookCommand, HookMatcher, HooksConfig
 from ..settings_manager import SettingsManager
 from .hooks import NOTIFICATION_PRESETS, _get_platform
 
@@ -189,7 +189,7 @@ def _setup_interactive() -> None:
 
     # Notification hooks
     console.print()
-    has_hooks = current.hooks and current.hooks.postToolUse
+    has_hooks = current.hooks and current.hooks.PostToolUse
     setup_hooks = questionary.confirm(
         "Configure notification when tasks complete?",
         default=not has_hooks,
@@ -239,12 +239,12 @@ def _setup_interactive() -> None:
         if not current.hooks:
             current.hooks = HooksConfig()
         # Clear existing Task hooks and add new one
-        current.hooks.postToolUse = [
-            h for h in current.hooks.postToolUse if h.matcher != "Task"
+        current.hooks.PostToolUse = [
+            h for h in current.hooks.PostToolUse if h.matcher != "Task"
         ]
-        current.hooks.postToolUse.append(
-            HookMatcher(matcher="Task", command=notification_command)
-        )
+        hook_cmd = HookCommand(type="command", command=notification_command)
+        hook_matcher = HookMatcher(matcher="Task", hooks=[hook_cmd])
+        current.hooks.PostToolUse.append(hook_matcher)
 
     # Confirm
     console.print("[bold]Summary:[/bold]")
@@ -345,7 +345,7 @@ def _setup_fallback() -> None:
 
     # Notification hooks
     console.print()
-    has_hooks = current.hooks and current.hooks.postToolUse
+    has_hooks = current.hooks and current.hooks.PostToolUse
     setup_hooks = click.confirm(
         "Configure notification when tasks complete?",
         default=not has_hooks,
@@ -387,12 +387,12 @@ def _setup_fallback() -> None:
         if not current.hooks:
             current.hooks = HooksConfig()
         # Clear existing Task hooks and add new one
-        current.hooks.postToolUse = [
-            h for h in current.hooks.postToolUse if h.matcher != "Task"
+        current.hooks.PostToolUse = [
+            h for h in current.hooks.PostToolUse if h.matcher != "Task"
         ]
-        current.hooks.postToolUse.append(
-            HookMatcher(matcher="Task", command=notification_command)
-        )
+        hook_cmd = HookCommand(type="command", command=notification_command)
+        hook_matcher = HookMatcher(matcher="Task", hooks=[hook_cmd])
+        current.hooks.PostToolUse.append(hook_matcher)
 
     # Confirm
     console.print()

@@ -33,24 +33,65 @@ class ClaudeSettings(BaseModel):
     extra: dict[str, Any] = Field(default_factory=dict)
 
 
+class HookCommand(BaseModel):
+    """Model cho một hook command."""
+
+    type: str = Field(default="command", description="Hook type (usually 'command')")
+    command: str = Field(description="Shell command to execute when hook triggers")
+    timeout: int | None = Field(default=None, description="Optional timeout in seconds")
+
+
 class HookMatcher(BaseModel):
     """Model cho một hook matcher configuration."""
 
-    matcher: str = Field(description="Tool name to match (e.g., 'Task', 'Bash')")
-    command: str = Field(description="Shell command to execute when hook triggers")
+    matcher: str = Field(description="Tool name to match (e.g., 'Task', 'Bash', '*' for all)")
+    hooks: list[HookCommand] = Field(
+        default_factory=list,
+        description="List of hook commands to execute",
+    )
+
+
+class StopHook(BaseModel):
+    """Model cho một Stop hook configuration.
+
+    Stop hooks don't use matchers, they trigger when Claude stops responding.
+    """
+
+    hooks: list[HookCommand] = Field(
+        default_factory=list,
+        description="List of hook commands to execute when Claude stops",
+    )
 
 
 class HooksConfig(BaseModel):
-    """Model cho hooks configuration."""
+    """Model cho hooks configuration.
 
-    postToolUse: list[HookMatcher] = Field(
+    Note: Event names are case-sensitive and must match Claude Code CLI format:
+    - PreToolUse (not preToolUse)
+    - PostToolUse (not postToolUse)
+    - PermissionRequest
+    - UserPromptSubmit
+    - Stop
+    - SubagentStart
+    - SubagentStop
+    """
+
+    PostToolUse: list[HookMatcher] = Field(
         default_factory=list,
         description="Hooks that run after a tool completes",
+        alias="postToolUse",  # Support both formats for backward compatibility
     )
-    preToolUse: list[HookMatcher] = Field(
+    PreToolUse: list[HookMatcher] = Field(
         default_factory=list,
         description="Hooks that run before a tool executes",
+        alias="preToolUse",  # Support both formats for backward compatibility
     )
+    Stop: list[StopHook] = Field(
+        default_factory=list,
+        description="Hooks that run when Claude stops responding (task completed)",
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ClaudeCodeSettings(BaseModel):

@@ -1,6 +1,7 @@
 """Commands to manage Claude Code hooks/notifications."""
 
 import platform
+import subprocess
 import sys
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from ..models import HookMatcher, HooksConfig
+from ..models import HookCommand, HooksConfig, StopHook
 from ..settings_manager import SettingsManager
 
 console = Console()
@@ -18,7 +19,6 @@ manager = SettingsManager()
 WINDOWS_MEDIA_DIR = Path("C:/Windows/Media")
 
 # Predefined notification commands for different platforms
-# Windows commands use -NoProfile -ExecutionPolicy Bypass to avoid profile loading and script policy errors
 NOTIFICATION_PRESETS = {
     "windows": {
         "beep": 'powershell -NoProfile -ExecutionPolicy Bypass -Command "[console]::beep(1000,500)"',
@@ -45,9 +45,6 @@ NOTIFICATION_PRESETS = {
         "sound": "paplay /usr/share/sounds/freedesktop/stereo/message.oga 2>/dev/null || echo -e '\\a'",
     },
 }
-
-# Common tools that can be matched
-COMMON_TOOLS = ["Task", "Bash", "Read", "Write", "Edit", "Grep", "Glob", "WebFetch", "WebSearch"]
 
 
 def _get_platform() -> str:
@@ -87,7 +84,6 @@ def _build_sound_command(sound_file: str, volume: int = 100) -> str:
     vol = volume / 100  # Convert to 0.0-1.0 scale
 
     # PowerShell script using MediaPlayer for volume control
-    # Volume must be set before Play() and after media is loaded
     ps_script = f"""
 Add-Type -AssemblyName PresentationCore
 $p = New-Object System.Windows.Media.MediaPlayer
@@ -102,10 +98,27 @@ Start-Sleep -Milliseconds 2000
     return f"powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand {encoded}"
 
 
+def _is_interactive() -> bool:
+    """Check if running in interactive terminal."""
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _get_questionary_style() -> object:
+    """Get questionary style."""
+    from questionary import Style
+
+    return Style([
+        ("qmark", "fg:cyan bold"),
+        ("question", "bold"),
+        ("answer", "fg:green"),
+        ("pointer", "fg:cyan bold"),
+        ("highlighted", "fg:cyan bold"),
+        ("selected", "fg:green"),
+    ])
+
+
 def _select_windows_sound_interactive(custom_style: object) -> str | None:
     """Interactive Windows sound selection with volume control."""
-    import subprocess
-
     import questionary
 
     sound_files = _get_windows_sounds()
@@ -150,144 +163,18 @@ def _select_windows_sound_interactive(custom_style: object) -> str | None:
     return command
 
 
-@click.group()
-def hooks() -> None:
-    """Manage Claude Code hooks and notifications.
-
-    Hooks allow you to run custom commands when Claude Code completes tasks.
-    Use this to get notifications (sound, popup, toast) when long-running
-    operations finish.
-    """
-    pass
-
-
-@hooks.command()
-def list() -> None:
-    """List all configured hooks."""
-    settings = manager.read_claude_code_settings()
-
-    if not settings.hooks:
-        console.print("[dim]No hooks configured.[/dim]")
-        console.print("\nUse [cyan]claude-helper hooks add[/cyan] to add a notification hook.")
-        return
-
-    # postToolUse hooks
-    if settings.hooks.postToolUse:
-        table = Table(title="Post-Tool Hooks (run after tool completes)")
-        table.add_column("#", style="dim", width=3)
-        table.add_column("Matcher", style="cyan")
-        table.add_column("Command", style="green")
-
-        for i, hook in enumerate(settings.hooks.postToolUse):
-            table.add_row(str(i), hook.matcher, hook.command)
-
-        console.print(table)
-    else:
-        console.print("[dim]No post-tool hooks configured.[/dim]")
-
-    console.print()
-
-    # preToolUse hooks
-    if settings.hooks.preToolUse:
-        table = Table(title="Pre-Tool Hooks (run before tool executes)")
-        table.add_column("#", style="dim", width=3)
-        table.add_column("Matcher", style="cyan")
-        table.add_column("Command", style="green")
-
-        for i, hook in enumerate(settings.hooks.preToolUse):
-            table.add_row(str(i), hook.matcher, hook.command)
-
-        console.print(table)
-
-
-@hooks.command()
-@click.option(
-    "--matcher", "-m",
-    default="Task",
-    help="Tool name to match (e.g., Task, Bash). Default: Task",
-)
-@click.option(
-    "--command", "-c",
-    help="Custom command to run. If not provided, will prompt for preset.",
-)
-@click.option(
-    "--type", "-t", "hook_type",
-    type=click.Choice(["post", "pre"]),
-    default="post",
-    help="Hook type: post (after tool) or pre (before tool). Default: post",
-)
-def add(matcher: str, command: str | None, hook_type: str) -> None:
-    """Add a notification hook.
-
-    Examples:
-
-    \b
-    # Add notification when Task completes (interactive)
-    claude-helper hooks add
-
-    \b
-    # Add beep when any Bash command finishes
-    claude-helper hooks add -m Bash -c "echo -e '\\a'"
-
-    \b
-    # Add toast notification for Task completion
-    claude-helper hooks add -m Task --command "notify-send 'Done!'"
-    """
-    settings = manager.read_claude_code_settings()
-
-    # Initialize hooks if not exists
-    if not settings.hooks:
-        settings.hooks = HooksConfig()
-
-    # If no command provided, show presets
-    if not command:
-        command = _select_preset_interactive()
-        if not command:
-            console.print("[yellow]Cancelled.[/yellow]")
-            return
-
-    # Create hook matcher
-    hook = HookMatcher(matcher=matcher, command=command)
-
-    # Add to appropriate list
-    if hook_type == "post":
-        settings.hooks.postToolUse.append(hook)
-    else:
-        settings.hooks.preToolUse.append(hook)
-
-    manager.write_claude_code_settings(settings)
-
-    console.print(f"[green]Added {hook_type}-tool hook:[/green]")
-    console.print(f"  Matcher: [cyan]{matcher}[/cyan]")
-    console.print(f"  Command: [dim]{command}[/dim]")
-
-
-def _is_interactive() -> bool:
-    """Check if running in interactive terminal."""
-    return sys.stdin.isatty() and sys.stdout.isatty()
-
-
 def _select_preset_interactive() -> str | None:
     """Interactive preset selection."""
     plat = _get_platform()
     presets = NOTIFICATION_PRESETS.get(plat, {})
 
     if not _is_interactive():
-        # Fallback to click prompts
         return _select_preset_fallback(presets)
 
     try:
         import questionary
-        from questionary import Style
 
-        custom_style = Style([
-            ("qmark", "fg:cyan bold"),
-            ("question", "bold"),
-            ("answer", "fg:green"),
-            ("pointer", "fg:cyan bold"),
-            ("highlighted", "fg:cyan bold"),
-            ("selected", "fg:green"),
-        ])
+        custom_style = _get_questionary_style()
 
         choices = [
             questionary.Choice("Beep sound", value="beep"),
@@ -345,15 +232,82 @@ def _select_preset_fallback(presets: dict[str, str]) -> str | None:
     return presets.get(preset_name) if preset_name else None
 
 
+def _add_stop_hook(command: str) -> None:
+    """Add a stop hook with the given command."""
+    settings = manager.read_claude_code_settings()
+    if not settings.hooks:
+        settings.hooks = HooksConfig()
+
+    hook_cmd = HookCommand(type="command", command=command)
+    stop_hook = StopHook(hooks=[hook_cmd])
+    settings.hooks.Stop.append(stop_hook)
+    manager.write_claude_code_settings(settings)
+
+
+@click.group()
+def hooks() -> None:
+    """Manage Claude Code notification hooks.
+
+    Hooks run when Claude Code finishes responding (Stop event).
+    Use this to get notifications (sound, popup, toast) when tasks complete.
+    """
+    pass
+
+
+@hooks.command()
+def list() -> None:
+    """List all configured hooks."""
+    settings = manager.read_claude_code_settings()
+
+    if not settings.hooks or not settings.hooks.Stop:
+        console.print("[dim]No hooks configured.[/dim]")
+        console.print("\nUse [cyan]claude-helper hooks add[/cyan] to add a notification hook.")
+        return
+
+    table = Table(title="Stop Hooks (run when Claude finishes responding)")
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Command", style="green")
+
+    for i, stop_hook in enumerate(settings.hooks.Stop):
+        for hook_cmd in stop_hook.hooks:
+            table.add_row(str(i), hook_cmd.command)
+
+    console.print(table)
+
+
+@hooks.command()
+@click.option(
+    "--command", "-c",
+    help="Custom command to run. If not provided, will prompt for preset.",
+)
+def add(command: str | None) -> None:
+    """Add a notification hook (runs when Claude finishes).
+
+    Examples:
+
+    \b
+    # Add notification interactively
+    claude-helper hooks add
+
+    \b
+    # Add custom command
+    claude-helper hooks add -c "echo done"
+    """
+    # If no command provided, show presets
+    if not command:
+        command = _select_preset_interactive()
+        if not command:
+            console.print("[yellow]Cancelled.[/yellow]")
+            return
+
+    _add_stop_hook(command)
+    console.print("[green]Added hook (runs when Claude finishes):[/green]")
+    console.print(f"  Command: [dim]{command}[/dim]")
+
+
 @hooks.command()
 @click.argument("index", type=int)
-@click.option(
-    "--type", "-t", "hook_type",
-    type=click.Choice(["post", "pre"]),
-    default="post",
-    help="Hook type to remove from. Default: post",
-)
-def remove(index: int, hook_type: str) -> None:
+def remove(index: int) -> None:
     """Remove a hook by its index.
 
     Use 'hooks list' to see hook indices.
@@ -363,30 +317,46 @@ def remove(index: int, hook_type: str) -> None:
     """
     settings = manager.read_claude_code_settings()
 
-    if not settings.hooks:
+    if not settings.hooks or not settings.hooks.Stop:
         console.print("[red]No hooks configured.[/red]")
         return
 
-    hook_list = settings.hooks.postToolUse if hook_type == "post" else settings.hooks.preToolUse
-
+    hook_list = settings.hooks.Stop
     if index < 0 or index >= len(hook_list):
-        console.print(f"[red]Invalid index. Valid range: 0-{len(hook_list) - 1}[/red]")
+        max_idx = len(hook_list) - 1
+        console.print(f"[red]Invalid index. Valid range: 0-{max_idx}[/red]")
         return
 
     removed = hook_list.pop(index)
     manager.write_claude_code_settings(settings)
 
     console.print("[green]Removed hook:[/green]")
-    console.print(f"  Matcher: [cyan]{removed.matcher}[/cyan]")
-    console.print(f"  Command: [dim]{removed.command}[/dim]")
+    if removed.hooks:
+        console.print(f"  Command: [dim]{removed.hooks[0].command}[/dim]")
+
+
+@hooks.command(name="remove-all")
+def remove_all() -> None:
+    """Remove all hooks without confirmation."""
+    settings = manager.read_claude_code_settings()
+
+    if not settings.hooks or not settings.hooks.Stop:
+        console.print("[dim]No hooks to remove.[/dim]")
+        return
+
+    count = len(settings.hooks.Stop)
+    settings.hooks.Stop = []
+    manager.write_claude_code_settings(settings)
+
+    console.print(f"[green]Removed {count} hook(s).[/green]")
 
 
 @hooks.command()
 def clear() -> None:
-    """Remove all hooks."""
+    """Remove all hooks (with confirmation)."""
     settings = manager.read_claude_code_settings()
 
-    if not settings.hooks or (not settings.hooks.postToolUse and not settings.hooks.preToolUse):
+    if not settings.hooks or not settings.hooks.Stop:
         console.print("[dim]No hooks to clear.[/dim]")
         return
 
@@ -394,7 +364,7 @@ def clear() -> None:
         console.print("[yellow]Cancelled.[/yellow]")
         return
 
-    settings.hooks = HooksConfig()
+    settings.hooks.Stop = []
     manager.write_claude_code_settings(settings)
 
     console.print("[green]All hooks cleared.[/green]")
@@ -424,9 +394,9 @@ def presets() -> None:
 
 @hooks.command()
 def sounds() -> None:
-    """List and select Windows system sounds (Windows only).
+    """Browse and select Windows system sounds (Windows only).
 
-    Browse available sounds in C:\\Windows\\Media and add one as a hook.
+    Browse available sounds in C:\\Windows\\Media and add one as a Stop hook.
     """
     if _get_platform() != "windows":
         console.print("[yellow]This command is only available on Windows.[/yellow]")
@@ -447,16 +417,8 @@ def sounds() -> None:
 
     try:
         import questionary
-        from questionary import Style
 
-        custom_style = Style([
-            ("qmark", "fg:cyan bold"),
-            ("question", "bold"),
-            ("answer", "fg:green"),
-            ("pointer", "fg:cyan bold"),
-            ("highlighted", "fg:cyan bold"),
-            ("selected", "fg:green"),
-        ])
+        custom_style = _get_questionary_style()
 
         # Let user select a sound
         choices = [questionary.Choice(sound, value=sound) for sound in sound_files]
@@ -491,8 +453,6 @@ def sounds() -> None:
             return
 
         # Test the sound
-        import subprocess
-
         command = _build_sound_command(selected, volume)
         console.print(f"\n[dim]Testing: {selected} at {volume}% volume[/dim]")
         subprocess.run(command, shell=True, check=True)
@@ -505,14 +465,7 @@ def sounds() -> None:
         ).ask()
 
         if add_hook:
-            settings = manager.read_claude_code_settings()
-            if not settings.hooks:
-                settings.hooks = HooksConfig()
-
-            hook = HookMatcher(matcher="Task", command=command)
-            settings.hooks.postToolUse.append(hook)
-            manager.write_claude_code_settings(settings)
-
+            _add_stop_hook(command)
             console.print(f"[green]Added hook with sound: {selected} at {volume}% volume[/green]")
         else:
             console.print("[yellow]Sound not added.[/yellow]")
@@ -536,8 +489,6 @@ def test(preset: str | None) -> None:
 
     Run this to verify your notification works before adding it as a hook.
     """
-    import subprocess
-
     if preset:
         command = _get_preset_command(preset)
         if not command:
@@ -546,9 +497,14 @@ def test(preset: str | None) -> None:
     else:
         # Test first configured hook or default beep
         settings = manager.read_claude_code_settings()
-        if settings.hooks and settings.hooks.postToolUse:
-            command = settings.hooks.postToolUse[0].command
-            console.print("[dim]Testing first configured hook...[/dim]")
+        if settings.hooks and settings.hooks.Stop:
+            first_hook = settings.hooks.Stop[0]
+            if first_hook.hooks:
+                command = first_hook.hooks[0].command
+                console.print("[dim]Testing first configured hook...[/dim]")
+            else:
+                command = _get_preset_command("beep")
+                console.print("[dim]No hooks configured, testing default beep...[/dim]")
         else:
             command = _get_preset_command("beep")
             console.print("[dim]Testing default beep...[/dim]")
@@ -560,10 +516,7 @@ def test(preset: str | None) -> None:
     console.print(f"[dim]Running: {command}[/dim]")
 
     try:
-        if platform.system().lower() == "windows":
-            subprocess.run(command, shell=True, check=True)
-        else:
-            subprocess.run(command, shell=True, check=True)
+        subprocess.run(command, shell=True, check=True)
         console.print("[green]Notification executed successfully![/green]")
     except subprocess.CalledProcessError as e:
         console.print(f"[red]Command failed with exit code {e.returncode}[/red]")
