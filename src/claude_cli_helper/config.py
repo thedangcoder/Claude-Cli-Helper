@@ -1,12 +1,12 @@
-"""Configuration và paths cho Claude settings."""
+"""Configuration and paths for Claude settings."""
 
 import os
 import platform
 from pathlib import Path
 
 
-def get_claude_config_dir() -> Path:
-    """Lấy đường dẫn thư mục config của Claude theo OS."""
+def get_claude_desktop_config_dir() -> Path:
+    """Get Claude Desktop config directory path based on OS."""
     system = platform.system()
 
     if system == "Windows":
@@ -21,33 +21,37 @@ def get_claude_config_dir() -> Path:
         return Path.home() / ".config" / "Claude"
 
 
-def get_settings_path() -> Path:
-    """Lấy đường dẫn file settings.json của Claude."""
-    return get_claude_config_dir() / "settings.json"
+def get_claude_code_config_dir() -> Path:
+    """Get Claude Code CLI config directory path (~/.claude on all platforms)."""
+    return Path.home() / ".claude"
+
+
+def get_claude_desktop_settings_path() -> Path:
+    """Get Claude Desktop settings.json path."""
+    return get_claude_desktop_config_dir() / "settings.json"
 
 
 def get_mcp_settings_path() -> Path:
-    """Lấy đường dẫn file claude_desktop_config.json cho MCP servers."""
-    return get_claude_config_dir() / "claude_desktop_config.json"
+    """Get claude_desktop_config.json path for MCP servers (Claude Desktop)."""
+    return get_claude_desktop_config_dir() / "claude_desktop_config.json"
+
+
+def get_claude_code_settings_path() -> Path:
+    """Get Claude Code CLI settings.json path (~/.claude/settings.json)."""
+    return get_claude_code_config_dir() / "settings.json"
 
 
 def get_backup_dir() -> Path:
-    """Lấy đường dẫn thư mục backup."""
-    return get_claude_config_dir() / "backups"
+    """Get backup directory path."""
+    return get_claude_code_config_dir() / "backups"
 
 
-# Claude Code specific paths
-def get_claude_code_settings_path() -> Path:
-    """Lấy đường dẫn settings của Claude Code CLI."""
-    system = platform.system()
+# Aliases for backward compatibility
+def get_claude_config_dir() -> Path:
+    """Alias for get_claude_code_config_dir."""
+    return get_claude_code_config_dir()
 
-    if system == "Windows":
-        base = os.environ.get("APPDATA", "")
-        return Path(base) / "claude-code" / "settings.json"
-    elif system == "Darwin":
-        return Path.home() / "Library" / "Application Support" / "claude-code" / "settings.json"
-    else:
-        xdg_config = os.environ.get("XDG_CONFIG_HOME", "")
-        if xdg_config:
-            return Path(xdg_config) / "claude-code" / "settings.json"
-        return Path.home() / ".config" / "claude-code" / "settings.json"
+
+def get_settings_path() -> Path:
+    """Alias for get_claude_code_settings_path."""
+    return get_claude_code_settings_path()
