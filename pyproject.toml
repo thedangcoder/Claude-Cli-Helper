@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "claude-cli-helper"
-version = "0.2.0"
+version = "0.3.0"
 description = "CLI tool để thiết lập và quản lý Claude Code settings nhanh hơn"
 readme = "README.md"
 license = "MIT"

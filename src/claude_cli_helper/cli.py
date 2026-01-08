@@ -5,6 +5,8 @@ from rich.console import Console
 
 from . import __version__
 from .commands.backup import backup
+from .commands.config import config
+from .commands.doctor import doctor
 from .commands.hooks import hooks
 from .commands.mcp import mcp
 from .commands.profile import profile
@@ -32,6 +34,8 @@ main.add_command(mcp)
 main.add_command(backup)
 main.add_command(profile)
 main.add_command(hooks)
+main.add_command(doctor)
+main.add_command(config)
 
 
 @main.command()
@@ -46,6 +50,8 @@ def info() -> None:
     console.print("  backup    - Backup/Restore settings")
     console.print("  profile   - Apply preset settings profiles")
     console.print("  hooks     - Manage notification hooks")
+    console.print("  doctor    - Diagnose configuration issues")
+    console.print("  config    - Manage CLAUDE.md file")
 
 
 if __name__ == "__main__":
