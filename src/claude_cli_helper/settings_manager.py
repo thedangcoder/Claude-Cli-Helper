@@ -25,10 +25,10 @@ class SettingsManager:
         self.backup_dir = get_backup_dir()
 
     def _read_json(self, path: Path) -> dict[str, Any]:
-        """Đọc file JSON, trả về dict rỗng nếu file không tồn tại."""
+        """Read JSON file, return empty dict if file doesn't exist."""
         if not path.exists():
             return {}
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
 
     def _write_json(self, path: Path, data: dict[str, Any]) -> None:

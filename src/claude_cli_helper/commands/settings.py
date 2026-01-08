@@ -74,3 +74,19 @@ def get(key: str) -> None:
         console.print(f"[cyan]{key}[/cyan] = [green]{value}[/green]")
     else:
         console.print(f"[red]Setting '{key}' does not exist[/red]")
+
+
+@settings.command()
+def list() -> None:
+    """List all current settings."""
+    settings_obj = manager.read_claude_code_settings()
+
+    table = Table(title="Claude Code Settings")
+    table.add_column("Key", style="cyan")
+    table.add_column("Value", style="green")
+
+    for key, value in settings_obj.model_dump().items():
+        if value is not None and value != [] and value != {}:
+            table.add_row(key, str(value))
+
+    console.print(table)
