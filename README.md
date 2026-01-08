@@ -1,84 +1,77 @@
 # Claude CLI Helper
 
+[Tiếng Việt](README.vi.md)
+
 CLI tool to setup and manage Claude Code settings faster.
 
-CLI tool để thiết lập và quản lý Claude Code settings nhanh hơn.
-
-## Features / Tính năng
+## Features
 
 - **Settings Management**: Read/write Claude Desktop and Claude Code settings
 - **MCP Servers**: Add, remove, list MCP server configurations
 - **Profiles**: Apply preset settings profiles
 - **Backup/Restore**: Backup and restore settings
 
----
-
-- **Quản lý Settings**: Đọc/ghi Claude Desktop và Claude Code settings
-- **MCP Servers**: Thêm, xóa, liệt kê MCP server configurations
-- **Profiles**: Apply các preset settings có sẵn
-- **Backup/Restore**: Sao lưu và khôi phục settings
-
-## Installation / Cài đặt
+## Installation
 
 ```bash
-# Install from source / Cài đặt từ source
+# Install from source
 pip install -e .
 
-# Or with dev dependencies / Hoặc với dev dependencies
+# Or with dev dependencies
 pip install -e ".[dev]"
 ```
 
-## Usage / Sử dụng
+## Usage
 
 ```bash
-# Show info / Xem thông tin
+# Show info
 claude-helper info
 
-# Show settings paths / Xem settings paths
+# Show settings paths
 claude-helper settings show
 
-# Set a setting / Đặt một setting
+# Set a setting
 claude-helper settings set autoApproveRead true
 
-# List MCP servers / Liệt kê MCP servers
+# List MCP servers
 claude-helper mcp list
 
-# Add MCP server / Thêm MCP server
+# Add MCP server
 claude-helper mcp add filesystem npx -a "-y" -a "@modelcontextprotocol/server-filesystem"
 
-# Create backup / Tạo backup
+# Create backup
 claude-helper backup create --name my-backup
 
-# List profiles / Liệt kê profiles
+# List profiles
 claude-helper profile list
 
-# Apply profile / Apply profile
+# Apply profile
 claude-helper profile apply developer
 ```
 
-## Available Profiles / Profiles có sẵn
+## Available Profiles
 
-| Profile | Description | Mô tả |
-|---------|-------------|-------|
-| `developer` | Auto approve read files | Auto approve đọc files |
-| `power-user` | Auto approve read and write | Auto approve read và write |
-| `filesystem-mcp` | MCP filesystem server config | Cấu hình MCP filesystem server |
-| `github-mcp` | MCP GitHub server config | Cấu hình MCP GitHub server |
-| `minimal` | Reset to default settings | Reset về settings mặc định |
+| Profile | Description |
+|---------|-------------|
+| `developer` | Auto approve read files |
+| `power-user` | Auto approve read and write |
+| `filesystem-mcp` | MCP filesystem server config |
+| `github-mcp` | MCP GitHub server config |
+| `minimal` | Reset to default settings |
 
-## Development / Phát triển
+## Development
 
 ```bash
-# Run tests / Chạy tests
+# Run tests
 pytest
 
-# Run linting / Chạy linting
+# Run linting
 ruff check .
 
-# Type checking / Kiểm tra type
+# Type checking
 mypy src
 ```
 
-## License / Giấy phép
+## License
 
 MIT

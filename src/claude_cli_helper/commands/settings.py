@@ -1,5 +1,7 @@
 """Commands to manage settings."""
 
+import json
+
 import click
 from rich.console import Console
 from rich.table import Table
@@ -63,6 +65,15 @@ def set(key: str, value: str) -> None:
     console.print(f"[green]Set {key} = {parsed_value}[/green]")
 
 
+def _format_value(value: object) -> str:
+    """Format value for display."""
+    if type(value) is bool:
+        return str(value).lower()
+    if type(value) in (dict, list):
+        return json.dumps(value, indent=2, ensure_ascii=False)
+    return str(value)
+
+
 @settings.command()
 @click.argument("key")
 def get(key: str) -> None:
@@ -71,7 +82,12 @@ def get(key: str) -> None:
 
     if hasattr(settings_obj, key):
         value = getattr(settings_obj, key)
-        console.print(f"[cyan]{key}[/cyan] = [green]{value}[/green]")
+        formatted = _format_value(value)
+        if type(value) in (dict, list) and value:
+            console.print(f"[cyan]{key}[/cyan] =")
+            print(formatted)
+        else:
+            console.print(f"[cyan]{key}[/cyan] = [green]{formatted}[/green]")
     else:
         console.print(f"[red]Setting '{key}' does not exist[/red]")
 
@@ -81,12 +97,13 @@ def list() -> None:
     """List all current settings."""
     settings_obj = manager.read_claude_code_settings()
 
-    table = Table(title="Claude Code Settings")
-    table.add_column("Key", style="cyan")
-    table.add_column("Value", style="green")
+    console.print("[bold]Claude Code Settings[/bold]\n")
 
     for key, value in settings_obj.model_dump().items():
         if value is not None and value != [] and value != {}:
-            table.add_row(key, str(value))
-
-    console.print(table)
+            formatted = _format_value(value)
+            if type(value) in (dict, list):
+                console.print(f"[cyan]{key}[/cyan] =")
+                print(formatted)
+            else:
+                console.print(f"[cyan]{key}[/cyan] = [green]{formatted}[/green]")

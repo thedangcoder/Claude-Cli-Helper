@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MCPServer(BaseModel):
@@ -22,6 +22,8 @@ class MCPConfig(BaseModel):
 class ClaudeSettings(BaseModel):
     """Model cho Claude settings.json."""
 
+    model_config = ConfigDict(extra="allow")
+
     # Các settings phổ biến
     theme: str = "system"
     fontSize: int = 14
@@ -30,12 +32,11 @@ class ClaudeSettings(BaseModel):
     # Custom settings
     extra: dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        extra = "allow"
-
 
 class ClaudeCodeSettings(BaseModel):
     """Model cho Claude Code CLI settings."""
+
+    model_config = ConfigDict(extra="allow")
 
     # Permission settings
     allowedTools: list[str] = Field(default_factory=list)
@@ -49,9 +50,6 @@ class ClaudeCodeSettings(BaseModel):
 
     # MCP settings
     mcpServers: dict[str, MCPServer] = Field(default_factory=dict)
-
-    class Config:
-        extra = "allow"
 
 
 class SettingsProfile(BaseModel):
