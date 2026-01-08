@@ -58,7 +58,7 @@ def show(name: str) -> None:
 @click.argument("name")
 @click.option("--backup/--no-backup", default=True, help="Create backup before applying")
 def apply(name: str, backup: bool) -> None:
-    """Apply a profile."""
+    """Apply a profile (merges with existing settings)."""
     p = get_profile(name)
 
     if not p:
@@ -70,7 +70,17 @@ def apply(name: str, backup: bool) -> None:
         console.print(f"[dim]Created backup: {backup_path}[/dim]")
 
     if p.claude_code_settings:
-        manager.write_claude_code_settings(p.claude_code_settings)
+        # Merge with existing settings instead of replacing
+        current = manager.read_claude_code_settings()
+        current_data = current.model_dump()
+        profile_data = p.claude_code_settings.model_dump(exclude_none=True)
+
+        # Only update keys that are explicitly set in profile
+        for key, value in profile_data.items():
+            if value is not None and value != [] and value != {}:
+                current_data[key] = value
+
+        manager._write_json(manager.claude_code_path, current_data)
         console.print("[green]+ Applied Claude Code settings[/green]")
 
     if p.mcp_config:
