@@ -1,8 +1,8 @@
 """Interactive setup wizard for Claude Code settings."""
 
+import sys
+
 import click
-import questionary
-from questionary import Style
 from rich.console import Console
 
 from ..settings_manager import SettingsManager
@@ -10,15 +10,10 @@ from ..settings_manager import SettingsManager
 console = Console()
 manager = SettingsManager()
 
-# Custom style for questionary
-custom_style = Style([
-    ("qmark", "fg:cyan bold"),
-    ("question", "bold"),
-    ("answer", "fg:green"),
-    ("pointer", "fg:cyan bold"),
-    ("highlighted", "fg:cyan bold"),
-    ("selected", "fg:green"),
-])
+
+def _is_interactive() -> bool:
+    """Check if running in interactive terminal."""
+    return sys.stdin.isatty() and sys.stdout.isatty()
 
 
 def _show_current_settings() -> None:
@@ -74,15 +69,20 @@ def _show_current_settings() -> None:
     console.print()
 
 
-@click.command()
-def setup() -> None:
-    """Interactive setup wizard for Claude Code settings."""
-    console.print("\n[bold cyan]Claude Code Setup Wizard[/bold cyan]\n")
+def _setup_interactive() -> None:
+    """Run interactive setup using questionary."""
+    import questionary
+    from questionary import Style
 
-    # Show current settings
-    _show_current_settings()
+    custom_style = Style([
+        ("qmark", "fg:cyan bold"),
+        ("question", "bold"),
+        ("answer", "fg:green"),
+        ("pointer", "fg:cyan bold"),
+        ("highlighted", "fg:cyan bold"),
+        ("selected", "fg:green"),
+    ])
 
-    # Load current settings
     current = manager.read_claude_code_settings()
 
     # Auto-approve settings
@@ -169,9 +169,6 @@ def setup() -> None:
 
         if base_url:
             env_vars["ANTHROPIC_BASE_URL"] = base_url
-        elif "ANTHROPIC_BASE_URL" in env_vars and not base_url:
-            # User cleared the value
-            pass
 
         current_token = env_vars.get("ANTHROPIC_AUTH_TOKEN", "")
         masked_token = current_token[:10] + "..." if len(current_token) > 10 else current_token
@@ -221,3 +218,122 @@ def setup() -> None:
         console.print("\n[green]Settings saved successfully![/green]")
     else:
         console.print("\n[yellow]Settings not saved.[/yellow]")
+
+
+def _setup_fallback() -> None:
+    """Run fallback setup using click prompts."""
+    current = manager.read_claude_code_settings()
+
+    # Auto-approve settings
+    console.print("[bold]Auto-approve Settings[/bold]")
+    console.print("Choose which actions Claude can perform without asking.\n")
+
+    auto_read = click.confirm(
+        "  Auto-approve read files?",
+        default=current.autoApproveRead,
+    )
+    auto_write = click.confirm(
+        "  Auto-approve write files?",
+        default=current.autoApproveWrite,
+    )
+    auto_bash = click.confirm(
+        "  Auto-approve bash commands?",
+        default=current.autoApproveBash,
+    )
+    auto_all = click.confirm(
+        "  Auto-approve ALL actions?",
+        default=current.autoApproveAll,
+    )
+
+    # Model selection
+    console.print()
+    current_model = getattr(current, "model", None) or "sonnet"
+    console.print("[bold]Model Selection[/bold]")
+    console.print("  1. sonnet (balanced)")
+    console.print("  2. opus (most capable)")
+    console.print("  3. haiku (fastest)")
+    model_map = {"1": "sonnet", "2": "opus", "3": "haiku", "sonnet": "sonnet", "opus": "opus", "haiku": "haiku"}
+    model_input = click.prompt(
+        "  Select model (1/2/3 or name)",
+        default=current_model,
+    )
+    model = model_map.get(model_input, current_model)
+
+    # Environment variables
+    console.print()
+    setup_env = click.confirm(
+        "Configure environment variables (API URL, tokens)?",
+        default=False,
+    )
+
+    env_vars: dict[str, str] = dict(getattr(current, "env", {}) or {})
+
+    if setup_env:
+        console.print()
+        console.print("[dim]Leave empty to keep current value or skip.[/dim]\n")
+
+        current_url = env_vars.get("ANTHROPIC_BASE_URL", "")
+        base_url = click.prompt(
+            "  ANTHROPIC_BASE_URL",
+            default=current_url,
+            show_default=bool(current_url),
+        )
+        if base_url:
+            env_vars["ANTHROPIC_BASE_URL"] = base_url
+
+        current_token = env_vars.get("ANTHROPIC_AUTH_TOKEN", "")
+        masked_token = current_token[:10] + "..." if len(current_token) > 10 else ""
+        auth_token = click.prompt(
+            f"  ANTHROPIC_AUTH_TOKEN [{masked_token}]",
+            default="",
+            show_default=False,
+        )
+        if auth_token:
+            env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token
+
+    # Apply settings
+    current.autoApproveRead = auto_read
+    current.autoApproveWrite = auto_write
+    current.autoApproveBash = auto_bash
+    current.autoApproveAll = auto_all
+    setattr(current, "model", model)
+
+    if env_vars:
+        setattr(current, "env", env_vars)
+
+    # Confirm
+    console.print()
+    console.print("[bold]Summary:[/bold]")
+    console.print(f"  Model: [green]{model}[/green]")
+    console.print(f"  Auto-approve read: [green]{auto_read}[/green]")
+    console.print(f"  Auto-approve write: [green]{auto_write}[/green]")
+    console.print(f"  Auto-approve bash: [green]{auto_bash}[/green]")
+    console.print(f"  Auto-approve all: [green]{auto_all}[/green]")
+    if env_vars:
+        console.print(f"  Environment variables: [green]{len(env_vars)} configured[/green]")
+
+    console.print()
+    if click.confirm("Save these settings?", default=True):
+        manager.write_claude_code_settings(current)
+        console.print("\n[green]Settings saved successfully![/green]")
+    else:
+        console.print("\n[yellow]Settings not saved.[/yellow]")
+
+
+@click.command()
+def setup() -> None:
+    """Interactive setup wizard for Claude Code settings."""
+    console.print("\n[bold cyan]Claude Code Setup Wizard[/bold cyan]\n")
+
+    # Show current settings
+    _show_current_settings()
+
+    # Try interactive mode, fallback to click prompts
+    if _is_interactive():
+        try:
+            _setup_interactive()
+        except Exception:
+            console.print("[dim]Falling back to simple prompts...[/dim]\n")
+            _setup_fallback()
+    else:
+        _setup_fallback()
