@@ -87,12 +87,13 @@ def _build_sound_command(sound_file: str, volume: int = 100) -> str:
     vol = volume / 100  # Convert to 0.0-1.0 scale
 
     # PowerShell script using MediaPlayer for volume control
+    # Volume must be set before Play() and after media is loaded
     ps_script = f"""
 Add-Type -AssemblyName PresentationCore
 $p = New-Object System.Windows.Media.MediaPlayer
-$p.Open([uri]"{sound_path}")
-Start-Sleep -Milliseconds 300
 $p.Volume = {vol}
+$p.Open([uri]"{sound_path}")
+while (-not $p.HasAudio) {{ Start-Sleep -Milliseconds 50 }}
 $p.Play()
 Start-Sleep -Milliseconds 2000
 """
