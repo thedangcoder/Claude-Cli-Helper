@@ -6,6 +6,7 @@ CLI tool to setup and manage Claude Code settings faster.
 
 ## Features
 
+- **Interactive Setup**: Wizard to configure Claude Code with guided prompts
 - **Settings Management**: Read/write Claude Desktop and Claude Code settings
 - **MCP Servers**: Add, remove, list MCP server configurations
 - **Profiles**: Apply preset settings profiles
@@ -21,17 +22,33 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
+## Quick Start
+
+```bash
+# Interactive setup wizard
+claude-helper setup
+```
+
 ## Usage
 
 ```bash
 # Show info
 claude-helper info
 
+# Interactive setup (recommended for first time)
+claude-helper setup
+
 # Show settings paths
 claude-helper settings show
 
+# List current settings
+claude-helper settings list
+
 # Set a setting
 claude-helper settings set autoApproveRead true
+
+# Get a setting
+claude-helper settings get model
 
 # List MCP servers
 claude-helper mcp list
@@ -39,11 +56,26 @@ claude-helper mcp list
 # Add MCP server
 claude-helper mcp add filesystem npx -a "-y" -a "@modelcontextprotocol/server-filesystem"
 
+# Remove MCP server
+claude-helper mcp remove filesystem
+
 # Create backup
 claude-helper backup create --name my-backup
 
+# List backups
+claude-helper backup list
+
+# Restore backup
+claude-helper backup restore my-backup
+
+# Delete backup
+claude-helper backup delete my-backup
+
 # List profiles
 claude-helper profile list
+
+# Show profile details
+claude-helper profile show developer
 
 # Apply profile
 claude-helper profile apply developer

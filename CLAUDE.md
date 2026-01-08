@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 Claude CLI Helper is a Python CLI tool to manage Claude Desktop and Claude Code CLI settings. Features:
+- Interactive setup wizard
 - Read/write settings.json
 - Configure MCP servers
 - Apply preset profiles
@@ -50,17 +51,19 @@ src/claude_cli_helper/
 ├── commands/           # Click command groups
 │   ├── settings.py     # settings show/list/get/set
 │   ├── mcp.py          # mcp list/add/remove
-│   ├── backup.py       # backup create/list/restore
-│   └── profile.py      # profile list/show/apply
+│   ├── backup.py       # backup create/list/restore/delete
+│   ├── profile.py      # profile list/show/apply
+│   └── setup.py        # Interactive setup wizard
 └── templates/
     └── profiles.py     # Built-in profiles (developer, power-user, etc.)
 ```
 
 ## Key Patterns
 
-- **Click** for CLI with command groups (settings, mcp, backup, profile)
+- **Click** for CLI with command groups (settings, mcp, backup, profile, setup)
 - **Pydantic** for data validation and serialization
 - **Rich** for console output with colors and tables
+- **Questionary** for interactive prompts (with Click fallback)
 - **utf-8-sig encoding** to handle BOM in JSON files (Windows PowerShell creates files with BOM)
 
 ## Settings File Locations
