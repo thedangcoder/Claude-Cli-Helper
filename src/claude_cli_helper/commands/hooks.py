@@ -2,6 +2,7 @@
 
 import platform
 import sys
+from pathlib import Path
 
 import click
 from rich.console import Console
@@ -12,6 +13,9 @@ from ..settings_manager import SettingsManager
 
 console = Console()
 manager = SettingsManager()
+
+# Windows Media sounds directory
+WINDOWS_MEDIA_DIR = Path("C:/Windows/Media")
 
 # Predefined notification commands for different platforms
 # Windows commands use -NoProfile -ExecutionPolicy Bypass to avoid profile loading and script policy errors
@@ -61,6 +65,53 @@ def _get_preset_command(preset_name: str) -> str | None:
     plat = _get_platform()
     presets = NOTIFICATION_PRESETS.get(plat, {})
     return presets.get(preset_name)
+
+
+def _get_windows_sounds() -> list[str]:
+    """Get list of available Windows sound files."""
+    if not WINDOWS_MEDIA_DIR.exists():
+        return []
+    return sorted([f.name for f in WINDOWS_MEDIA_DIR.glob("*.wav")])
+
+
+def _build_sound_command(sound_file: str) -> str:
+    """Build PowerShell command to play a sound file."""
+    sound_path = WINDOWS_MEDIA_DIR / sound_file
+    return (
+        f'powershell -NoProfile -ExecutionPolicy Bypass -Command "'
+        f"(New-Object Media.SoundPlayer '{sound_path}').PlaySync()"
+        f'"'
+    )
+
+
+def _select_windows_sound_interactive(custom_style: object) -> str | None:
+    """Interactive Windows sound selection."""
+    import subprocess
+
+    import questionary
+
+    sound_files = _get_windows_sounds()
+    if not sound_files:
+        console.print("[red]No sound files found.[/red]")
+        return None
+
+    choices = [questionary.Choice(sound, value=sound) for sound in sound_files]
+
+    selected = questionary.select(
+        "Select a sound file:",
+        choices=choices,
+        style=custom_style,
+    ).ask()
+
+    if not selected:
+        return None
+
+    # Preview the sound
+    command = _build_sound_command(selected)
+    console.print(f"[dim]Playing: {selected}[/dim]")
+    subprocess.run(command, shell=True, check=True)
+
+    return command
 
 
 @click.group()
@@ -205,9 +256,14 @@ def _select_preset_interactive() -> str | None:
         choices = [
             questionary.Choice("Beep sound", value="beep"),
             questionary.Choice("Toast/Popup notification", value="toast"),
-            questionary.Choice("System sound", value="sound"),
-            questionary.Choice("Custom command...", value="custom"),
+            questionary.Choice("System sound (default)", value="sound"),
         ]
+
+        # Add Windows sound browser option
+        if _get_platform() == "windows":
+            choices.append(questionary.Choice("Browse Windows sounds...", value="browse_sounds"))
+
+        choices.append(questionary.Choice("Custom command...", value="custom"))
 
         result = questionary.select(
             "Select notification type:",
@@ -224,6 +280,9 @@ def _select_preset_interactive() -> str | None:
                 style=custom_style,
             ).ask()
             return custom_cmd
+
+        if result == "browse_sounds":
+            return _select_windows_sound_interactive(custom_style)
 
         return presets.get(result) if result else None
 
@@ -325,6 +384,90 @@ def presets() -> None:
     console.print(table)
 
     console.print("\n[dim]Use 'claude-helper hooks add' to add a preset interactively.[/dim]")
+
+
+@hooks.command()
+def sounds() -> None:
+    """List and select Windows system sounds (Windows only).
+
+    Browse available sounds in C:\\Windows\\Media and add one as a hook.
+    """
+    if _get_platform() != "windows":
+        console.print("[yellow]This command is only available on Windows.[/yellow]")
+        return
+
+    sound_files = _get_windows_sounds()
+    if not sound_files:
+        console.print("[red]No sound files found in C:\\Windows\\Media[/red]")
+        return
+
+    if not _is_interactive():
+        # Non-interactive: just list sounds
+        console.print("[bold]Available Windows sounds:[/bold]\n")
+        for i, sound in enumerate(sound_files, 1):
+            console.print(f"  {i:2}. {sound}")
+        console.print("\n[dim]Use 'claude-helper hooks add -c \"<command>\"' to add manually.[/dim]")
+        return
+
+    try:
+        import questionary
+        from questionary import Style
+
+        custom_style = Style([
+            ("qmark", "fg:cyan bold"),
+            ("question", "bold"),
+            ("answer", "fg:green"),
+            ("pointer", "fg:cyan bold"),
+            ("highlighted", "fg:cyan bold"),
+            ("selected", "fg:green"),
+        ])
+
+        # Let user select a sound
+        choices = [questionary.Choice(sound, value=sound) for sound in sound_files]
+
+        selected = questionary.select(
+            "Select a sound file:",
+            choices=choices,
+            style=custom_style,
+        ).ask()
+
+        if not selected:
+            console.print("[yellow]Cancelled.[/yellow]")
+            return
+
+        # Test the sound
+        import subprocess
+
+        command = _build_sound_command(selected)
+        console.print(f"\n[dim]Testing: {selected}[/dim]")
+        subprocess.run(command, shell=True, check=True)
+
+        # Ask to add as hook
+        add_hook = questionary.confirm(
+            "Add this sound as notification hook?",
+            default=True,
+            style=custom_style,
+        ).ask()
+
+        if add_hook:
+            settings = manager.read_claude_code_settings()
+            if not settings.hooks:
+                settings.hooks = HooksConfig()
+
+            hook = HookMatcher(matcher="Task", command=command)
+            settings.hooks.postToolUse.append(hook)
+            manager.write_claude_code_settings(settings)
+
+            console.print(f"[green]Added hook with sound: {selected}[/green]")
+        else:
+            console.print("[yellow]Sound not added.[/yellow]")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        # Fallback to simple list
+        console.print("\n[bold]Available Windows sounds:[/bold]\n")
+        for i, sound in enumerate(sound_files, 1):
+            console.print(f"  {i:2}. {sound}")
 
 
 @hooks.command()
