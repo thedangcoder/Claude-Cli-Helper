@@ -4,31 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Claude CLI Helper là một Python CLI tool để quản lý settings của Claude Desktop và Claude Code CLI. Tool hỗ trợ:
-- Đọc/ghi settings.json
-- Cấu hình MCP servers
+Claude CLI Helper is a Python CLI tool to manage Claude Desktop and Claude Code CLI settings. Features:
+- Read/write settings.json
+- Configure MCP servers
 - Apply preset profiles
 - Backup/restore settings
 
 ## Commands
 
 ```bash
-# Cài đặt development environment
+# Install development environment
 pip install -e ".[dev]"
 
-# Chạy CLI trực tiếp
+# Run CLI directly
 python -m claude_cli_helper.cli <command>
 
-# Hoặc sau khi cài đặt
+# Or after installation
 claude-helper <command>
 
-# Chạy tests
+# Run tests
 pytest
 
-# Chạy single test file
+# Run single test file
 pytest tests/test_models.py
 
-# Chạy single test function
+# Run single test function
 pytest tests/test_models.py::test_mcp_server_defaults
 
 # Linting
@@ -44,11 +44,11 @@ mypy src
 ```
 src/claude_cli_helper/
 ├── cli.py              # Entry point, register command groups
-├── config.py           # OS-specific paths (Windows/macOS/Linux)
+├── config.py           # Path functions for Claude Desktop and Claude Code
 ├── models.py           # Pydantic models: MCPServer, MCPConfig, ClaudeSettings, etc.
-├── settings_manager.py # Core logic đọc/ghi JSON files, backup/restore
+├── settings_manager.py # Core logic for read/write JSON files, backup/restore
 ├── commands/           # Click command groups
-│   ├── settings.py     # settings show/get/set
+│   ├── settings.py     # settings show/list/get/set
 │   ├── mcp.py          # mcp list/add/remove
 │   ├── backup.py       # backup create/list/restore
 │   └── profile.py      # profile list/show/apply
@@ -58,30 +58,34 @@ src/claude_cli_helper/
 
 ## Key Patterns
 
-- **Click** cho CLI với command groups (settings, mcp, backup, profile)
-- **Pydantic** cho data validation và serialization
-- **Rich** cho console output với colors và tables
-- **Cross-platform paths** trong `config.py` - detect OS và trả về đúng path cho Claude settings
+- **Click** for CLI with command groups (settings, mcp, backup, profile)
+- **Pydantic** for data validation and serialization
+- **Rich** for console output with colors and tables
+- **utf-8-sig encoding** to handle BOM in JSON files (Windows PowerShell creates files with BOM)
 
 ## Settings File Locations
 
-Tool quản lý 3 file chính (paths tự động detect theo OS):
-1. **Claude Desktop settings**: `settings.json`
-2. **MCP config**: `claude_desktop_config.json`
-3. **Claude Code CLI**: `~/.config/claude-code/settings.json` (Linux) hoặc tương đương
+Tool manages these config files:
+
+| Type | Path |
+|------|------|
+| **Claude Code CLI** | `~/.claude/settings.json` (all platforms) |
+| **Claude Desktop** | `%APPDATA%/Claude/` (Win), `~/Library/Application Support/Claude/` (Mac) |
+| **MCP Config** | `claude_desktop_config.json` in Claude Desktop directory |
+| **Backups** | `~/.claude/backups/` |
 
 ## Adding New Profiles
 
-Thêm profile mới trong `src/claude_cli_helper/templates/profiles.py`:
+Add new profile in `src/claude_cli_helper/templates/profiles.py`:
 
 ```python
 NEW_PROFILE = SettingsProfile(
     name="profile-name",
-    description="Description",
+    description="Description in English",
     claude_code_settings=ClaudeCodeSettings(...),
     mcp_config=MCPConfig(...),
 )
 
-# Thêm vào BUILTIN_PROFILES dict
+# Add to BUILTIN_PROFILES dict
 BUILTIN_PROFILES["profile-name"] = NEW_PROFILE
 ```
