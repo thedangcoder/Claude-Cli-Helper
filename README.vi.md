@@ -8,6 +8,7 @@ CLI tool để thiết lập và quản lý Claude Code settings nhanh hơn.
 
 - **Interactive Setup**: Wizard hướng dẫn cấu hình Claude Code
 - **Quản lý Settings**: Đọc/ghi Claude Desktop và Claude Code settings
+- **Environment Variables**: Quản lý API URLs, tokens và các biến môi trường khác
 - **MCP Servers**: Thêm, xóa, liệt kê MCP server configurations
 - **Profiles**: Apply các preset settings có sẵn
 - **Backup/Restore**: Sao lưu và khôi phục settings
@@ -49,6 +50,13 @@ claude-helper settings set autoApproveRead true
 
 # Lấy một setting
 claude-helper settings get model
+
+# Quản lý environment variables
+claude-helper env set ANTHROPIC_BASE_URL https://api.custom.com
+claude-helper env set ANTHROPIC_AUTH_TOKEN your-token-here
+claude-helper env get ANTHROPIC_BASE_URL
+claude-helper env list
+claude-helper env delete ANTHROPIC_BASE_URL
 
 # Liệt kê MCP servers
 claude-helper mcp list

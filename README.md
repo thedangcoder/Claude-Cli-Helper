@@ -8,6 +8,7 @@ CLI tool to setup and manage Claude Code settings faster.
 
 - **Interactive Setup**: Wizard to configure Claude Code with guided prompts
 - **Settings Management**: Read/write Claude Desktop and Claude Code settings
+- **Environment Variables**: Manage API URLs, tokens, and other environment variables
 - **MCP Servers**: Add, remove, list MCP server configurations
 - **Profiles**: Apply preset settings profiles
 - **Backup/Restore**: Backup and restore settings
@@ -49,6 +50,13 @@ claude-helper settings set autoApproveRead true
 
 # Get a setting
 claude-helper settings get model
+
+# Manage environment variables
+claude-helper env set ANTHROPIC_BASE_URL https://api.custom.com
+claude-helper env set ANTHROPIC_AUTH_TOKEN your-token-here
+claude-helper env get ANTHROPIC_BASE_URL
+claude-helper env list
+claude-helper env delete ANTHROPIC_BASE_URL
 
 # List MCP servers
 claude-helper mcp list
