@@ -7,6 +7,7 @@ from . import __version__
 from .commands.backup import backup
 from .commands.config import config
 from .commands.doctor import doctor
+from .commands.env import env
 from .commands.hooks import hooks
 from .commands.mcp import mcp
 from .commands.profile import profile
@@ -36,6 +37,7 @@ main.add_command(profile)
 main.add_command(hooks)
 main.add_command(doctor)
 main.add_command(config)
+main.add_command(env)
 
 
 @main.command()
@@ -52,6 +54,7 @@ def info() -> None:
     console.print("  hooks     - Manage notification hooks")
     console.print("  doctor    - Diagnose configuration issues")
     console.print("  config    - Manage CLAUDE.md file")
+    console.print("  env       - Manage environment variables")
 
 
 if __name__ == "__main__":

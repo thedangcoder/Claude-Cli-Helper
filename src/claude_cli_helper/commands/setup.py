@@ -156,12 +156,17 @@ def _setup_interactive() -> None:
 
     if setup_env:
         console.print()
-        console.print("[dim]Leave empty to keep current value or skip.[/dim]\n")
+        console.print("[dim]Enter new value to update, or press Enter to keep current.[/dim]\n")
 
         current_url = env_vars.get("ANTHROPIC_BASE_URL", "")
+        if current_url:
+            console.print(f"  Current ANTHROPIC_BASE_URL: [cyan]{current_url}[/cyan]")
+        else:
+            console.print("  Current ANTHROPIC_BASE_URL: [dim]not set[/dim]")
+
         base_url = questionary.text(
-            "ANTHROPIC_BASE_URL:",
-            default=current_url,
+            "New ANTHROPIC_BASE_URL (or press Enter to skip):",
+            default="",
             style=custom_style,
         ).ask()
 
@@ -169,13 +174,20 @@ def _setup_interactive() -> None:
             console.print("[yellow]Setup cancelled.[/yellow]")
             return
 
-        if base_url:
-            env_vars["ANTHROPIC_BASE_URL"] = base_url
+        # Update only if user entered a new value
+        if base_url and base_url.strip():
+            env_vars["ANTHROPIC_BASE_URL"] = base_url.strip()
 
+        console.print()
         current_token = env_vars.get("ANTHROPIC_AUTH_TOKEN", "")
-        masked_token = current_token[:10] + "..." if len(current_token) > 10 else current_token
+        if current_token:
+            masked_token = current_token[:10] + "..." if len(current_token) > 10 else current_token
+            console.print(f"  Current ANTHROPIC_AUTH_TOKEN: [cyan]{masked_token}[/cyan]")
+        else:
+            console.print("  Current ANTHROPIC_AUTH_TOKEN: [dim]not set[/dim]")
+
         auth_token = questionary.text(
-            f"ANTHROPIC_AUTH_TOKEN [{masked_token}]:",
+            "New ANTHROPIC_AUTH_TOKEN (or press Enter to skip):",
             default="",
             style=custom_style,
         ).ask()
@@ -184,8 +196,9 @@ def _setup_interactive() -> None:
             console.print("[yellow]Setup cancelled.[/yellow]")
             return
 
-        if auth_token:
-            env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token
+        # Update only if user entered a new value
+        if auth_token and auth_token.strip():
+            env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token.strip()
 
     # Notification hooks
     console.print()
@@ -231,8 +244,8 @@ def _setup_interactive() -> None:
     current.autoApproveAll = "all" in auto_approve_choices
     setattr(current, "model", model)
 
-    if env_vars:
-        setattr(current, "env", env_vars)
+    # Always set env vars (even if empty) to ensure they're preserved
+    setattr(current, "env", env_vars)
 
     # Apply notification hooks
     if notification_command:
@@ -253,8 +266,16 @@ def _setup_interactive() -> None:
     console.print(f"  Auto-approve write: [green]{current.autoApproveWrite}[/green]")
     console.print(f"  Auto-approve bash: [green]{current.autoApproveBash}[/green]")
     console.print(f"  Auto-approve all: [green]{current.autoApproveAll}[/green]")
+
     if env_vars:
         console.print(f"  Environment variables: [green]{len(env_vars)} configured[/green]")
+        for key in sorted(env_vars.keys()):
+            if any(s in key.upper() for s in ["TOKEN", "SECRET", "KEY", "PASSWORD"]):
+                console.print(f"    - {key}: [dim]***[/dim]")
+            else:
+                console.print(f"    - {key}: [dim]{env_vars[key]}[/dim]")
+    else:
+        console.print("  Environment variables: [dim]none[/dim]")
     if notification_command:
         console.print("  Notification: [green]enabled[/green]")
 
@@ -322,26 +343,37 @@ def _setup_fallback() -> None:
 
     if setup_env:
         console.print()
-        console.print("[dim]Leave empty to keep current value or skip.[/dim]\n")
+        console.print("[dim]Enter new value to update, or press Enter to keep current.[/dim]\n")
 
         current_url = env_vars.get("ANTHROPIC_BASE_URL", "")
+        if current_url:
+            console.print(f"  Current ANTHROPIC_BASE_URL: [cyan]{current_url}[/cyan]")
+        else:
+            console.print("  Current ANTHROPIC_BASE_URL: [dim]not set[/dim]")
         base_url = click.prompt(
-            "  ANTHROPIC_BASE_URL",
-            default=current_url,
-            show_default=bool(current_url),
-        )
-        if base_url:
-            env_vars["ANTHROPIC_BASE_URL"] = base_url
-
-        current_token = env_vars.get("ANTHROPIC_AUTH_TOKEN", "")
-        masked_token = current_token[:10] + "..." if len(current_token) > 10 else ""
-        auth_token = click.prompt(
-            f"  ANTHROPIC_AUTH_TOKEN [{masked_token}]",
+            "  New ANTHROPIC_BASE_URL (or press Enter to skip)",
             default="",
             show_default=False,
         )
-        if auth_token:
-            env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token
+        # Update only if user entered a new value
+        if base_url and base_url.strip():
+            env_vars["ANTHROPIC_BASE_URL"] = base_url.strip()
+
+        console.print()
+        current_token = env_vars.get("ANTHROPIC_AUTH_TOKEN", "")
+        if current_token:
+            masked_token = current_token[:10] + "..." if len(current_token) > 10 else ""
+            console.print(f"  Current ANTHROPIC_AUTH_TOKEN: [cyan]{masked_token}[/cyan]")
+        else:
+            console.print("  Current ANTHROPIC_AUTH_TOKEN: [dim]not set[/dim]")
+        auth_token = click.prompt(
+            "  New ANTHROPIC_AUTH_TOKEN (or press Enter to skip)",
+            default="",
+            show_default=False,
+        )
+        # Update only if user entered a new value
+        if auth_token and auth_token.strip():
+            env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token.strip()
 
     # Notification hooks
     console.print()
@@ -379,8 +411,8 @@ def _setup_fallback() -> None:
     current.autoApproveAll = auto_all
     setattr(current, "model", model)
 
-    if env_vars:
-        setattr(current, "env", env_vars)
+    # Always set env vars (even if empty) to ensure they're preserved
+    setattr(current, "env", env_vars)
 
     # Apply notification hooks
     if notification_command:
@@ -402,8 +434,16 @@ def _setup_fallback() -> None:
     console.print(f"  Auto-approve write: [green]{auto_write}[/green]")
     console.print(f"  Auto-approve bash: [green]{auto_bash}[/green]")
     console.print(f"  Auto-approve all: [green]{auto_all}[/green]")
+
     if env_vars:
         console.print(f"  Environment variables: [green]{len(env_vars)} configured[/green]")
+        for key in sorted(env_vars.keys()):
+            if any(s in key.upper() for s in ["TOKEN", "SECRET", "KEY", "PASSWORD"]):
+                console.print(f"    - {key}: [dim]***[/dim]")
+            else:
+                console.print(f"    - {key}: [dim]{env_vars[key]}[/dim]")
+    else:
+        console.print("  Environment variables: [dim]none[/dim]")
     if notification_command:
         console.print("  Notification: [green]enabled[/green]")
 

@@ -53,6 +53,7 @@ src/claude_cli_helper/
 │   ├── mcp.py          # mcp list/add/remove
 │   ├── backup.py       # backup create/list/restore/delete
 │   ├── profile.py      # profile list/show/apply
+│   ├── env.py          # env set/get/list/delete (environment variables)
 │   └── setup.py        # Interactive setup wizard
 └── templates/
     └── profiles.py     # Built-in profiles (developer, power-user, etc.)
@@ -60,7 +61,7 @@ src/claude_cli_helper/
 
 ## Key Patterns
 
-- **Click** for CLI with command groups (settings, mcp, backup, profile, setup)
+- **Click** for CLI with command groups (settings, mcp, backup, profile, env, setup)
 - **Pydantic** for data validation and serialization
 - **Rich** for console output with colors and tables
 - **Questionary** for interactive prompts (with Click fallback)
