@@ -11,6 +11,7 @@ from claude_cli_helper.config import (
     get_claude_desktop_config_dir,
     get_claude_desktop_settings_path,
     get_mcp_settings_path,
+    get_profiles_dir,
 )
 
 
@@ -75,3 +76,10 @@ def test_get_backup_dir():
     with patch("pathlib.Path.home", return_value=Path("/home/test")):
         path = get_backup_dir()
         assert path == Path("/home/test/.claude/backups")
+
+
+def test_get_profiles_dir():
+    """Test profiles directory path is in ~/.claude/profiles."""
+    with patch("pathlib.Path.home", return_value=Path("/home/test")):
+        path = get_profiles_dir()
+        assert path == Path("/home/test/.claude/profiles")

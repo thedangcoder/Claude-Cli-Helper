@@ -10,9 +10,10 @@ from .config import (
     get_backup_dir,
     get_claude_code_settings_path,
     get_mcp_settings_path,
+    get_profiles_dir,
     get_settings_path,
 )
-from .models import ClaudeCodeSettings, ClaudeSettings, MCPConfig
+from .models import ClaudeCodeSettings, ClaudeSettings, MCPConfig, SettingsProfile
 
 
 class SettingsManager:
@@ -23,6 +24,7 @@ class SettingsManager:
         self.mcp_path = get_mcp_settings_path()
         self.claude_code_path = get_claude_code_settings_path()
         self.backup_dir = get_backup_dir()
+        self.profiles_dir = get_profiles_dir()
 
     def _read_json(self, path: Path) -> dict[str, Any]:
         """Read JSON file, return empty dict if file doesn't exist."""
@@ -117,3 +119,75 @@ class SettingsManager:
             raise FileNotFoundError(f"Backup '{backup_name}' does not exist")
 
         shutil.rmtree(backup_path)
+
+
+class ProfileManager:
+    """Quản lý custom profiles."""
+
+    def __init__(self) -> None:
+        self.profiles_dir = get_profiles_dir()
+        self.settings = SettingsManager()
+
+    def _get_profile_path(self, name: str) -> Path:
+        """Get path to profile file."""
+        return self.profiles_dir / f"{name}.json"
+
+    def save_profile(
+        self,
+        name: str,
+        description: str = "",
+        include_claude_code: bool = True,
+        include_mcp: bool = True,
+        include_claude_desktop: bool = False,
+    ) -> SettingsProfile:
+        """Lưu current settings như một profile mới."""
+        profile = SettingsProfile(name=name, description=description)
+
+        if include_claude_code:
+            profile.claude_code_settings = self.settings.read_claude_code_settings()
+
+        if include_mcp:
+            profile.mcp_config = self.settings.read_mcp_config()
+
+        if include_claude_desktop:
+            profile.claude_settings = self.settings.read_settings()
+
+        # Lưu profile ra file
+        profile_path = self._get_profile_path(name)
+        profile_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(profile_path, "w", encoding="utf-8") as f:
+            f.write(profile.model_dump_json(indent=2, exclude_none=True))
+
+        return profile
+
+    def load_profile(self, name: str) -> SettingsProfile | None:
+        """Tải profile từ file."""
+        profile_path = self._get_profile_path(name)
+
+        if not profile_path.exists():
+            return None
+
+        with open(profile_path, "r", encoding="utf-8") as f:
+            return SettingsProfile.model_validate_json(f.read())
+
+    def delete_profile(self, name: str) -> bool:
+        """Xóa profile."""
+        profile_path = self._get_profile_path(name)
+
+        if not profile_path.exists():
+            return False
+
+        profile_path.unlink()
+        return True
+
+    def list_custom_profiles(self) -> list[SettingsProfile]:
+        """List tất cả custom profiles."""
+        if not self.profiles_dir.exists():
+            return []
+
+        profiles = []
+        for profile_file in self.profiles_dir.glob("*.json"):
+            with open(profile_file, "r", encoding="utf-8") as f:
+                profiles.append(SettingsProfile.model_validate_json(f.read()))
+
+        return profiles

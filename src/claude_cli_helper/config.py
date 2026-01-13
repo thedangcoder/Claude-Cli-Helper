@@ -46,6 +46,11 @@ def get_backup_dir() -> Path:
     return get_claude_code_config_dir() / "backups"
 
 
+def get_profiles_dir() -> Path:
+    """Get custom profiles directory path."""
+    return get_claude_code_config_dir() / "profiles"
+
+
 # Aliases for backward compatibility
 def get_claude_config_dir() -> Path:
     """Alias for get_claude_code_config_dir."""
