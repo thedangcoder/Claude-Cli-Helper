@@ -87,6 +87,12 @@ claude-helper profile show developer
 
 # Apply profile
 claude-helper profile apply developer
+
+# Lưu current settings thành profile mới
+claude-helper profile save my-profile -d "My custom profile"
+
+# Xóa custom profile
+claude-helper profile delete my-profile
 ```
 
 ## Profiles có sẵn
