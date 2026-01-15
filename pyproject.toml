@@ -30,6 +30,12 @@ dependencies = [
     "questionary>=2.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/thedangcoder/Claude-Cli-Helper"
+Repository = "https://github.com/thedangcoder/Claude-Cli-Helper"
+Issues = "https://github.com/thedangcoder/Claude-Cli-Helper/issues"
+Documentation = "https://github.com/thedangcoder/Claude-Cli-Helper#readme"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",

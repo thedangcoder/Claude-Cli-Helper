@@ -6,6 +6,8 @@ from rich.table import Table
 
 from ..settings_manager import SettingsManager
 
+SENSITIVE_KEYWORDS = ["TOKEN", "SECRET", "KEY", "PASSWORD"]
+
 console = Console()
 manager = SettingsManager()
 

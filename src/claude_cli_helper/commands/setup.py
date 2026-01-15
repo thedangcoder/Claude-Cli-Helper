@@ -3,6 +3,8 @@
 import sys
 
 import click
+import questionary
+from questionary import Style
 from rich.console import Console
 
 from ..models import HookCommand, HookMatcher, HooksConfig
@@ -18,6 +20,20 @@ def _is_interactive() -> bool:
     return sys.stdin.isatty() and sys.stdout.isatty()
 
 
+def _get_questionary_style() -> Style:
+    """Get questionary style."""
+    return Style([
+        ("qmark", "fg:cyan bold"),
+        ("question", "bold"),
+        ("answer", "fg:green"),
+        ("pointer", "fg:cyan bold"),
+        ("highlighted", "fg:cyan bold"),
+        ("selected", "fg:green"),
+        ("separator", "fg:white"),
+        ("instruction", "fg:white dim"),
+    ])
+
+
 def _show_current_settings() -> None:
     """Display current settings."""
     current = manager.read_claude_code_settings()
@@ -25,7 +41,7 @@ def _show_current_settings() -> None:
 
     # Filter out empty values
     has_settings = False
-    for key, value in data.items():
+    for _key, value in data.items():
         if value is not None and value != [] and value != {}:
             has_settings = True
             break
@@ -73,18 +89,7 @@ def _show_current_settings() -> None:
 
 def _setup_interactive() -> None:
     """Run interactive setup using questionary."""
-    import questionary
-    from questionary import Style
-
-    custom_style = Style([
-        ("qmark", "fg:cyan bold"),
-        ("question", "bold"),
-        ("answer", "fg:green"),
-        ("pointer", "fg:cyan bold"),
-        ("highlighted", "fg:cyan bold"),
-        ("selected", "fg:green"),
-    ])
-
+    style = _get_questionary_style()
     current = manager.read_claude_code_settings()
 
     # Auto-approve settings
@@ -94,28 +99,12 @@ def _setup_interactive() -> None:
     auto_approve_choices = questionary.checkbox(
         "Select auto-approve options:",
         choices=[
-            questionary.Choice(
-                "Read files (autoApproveRead)",
-                checked=current.autoApproveRead,
-                value="read",
-            ),
-            questionary.Choice(
-                "Write files (autoApproveWrite)",
-                checked=current.autoApproveWrite,
-                value="write",
-            ),
-            questionary.Choice(
-                "Run bash commands (autoApproveBash)",
-                checked=current.autoApproveBash,
-                value="bash",
-            ),
-            questionary.Choice(
-                "All actions (autoApproveAll)",
-                checked=current.autoApproveAll,
-                value="all",
-            ),
+            questionary.Choice("Read files (autoApproveRead)", value="read", checked=current.autoApproveRead),
+            questionary.Choice("Write files (autoApproveWrite)", value="write", checked=current.autoApproveWrite),
+            questionary.Choice("Run bash commands (autoApproveBash)", value="bash", checked=current.autoApproveBash),
+            questionary.Choice("All actions (autoApproveAll)", value="all", checked=current.autoApproveAll),
         ],
-        style=custom_style,
+        style=style,
     ).ask()
 
     if auto_approve_choices is None:
@@ -124,7 +113,7 @@ def _setup_interactive() -> None:
 
     # Model selection
     console.print()
-    current_model = getattr(current, "model", None)
+    current_model = getattr(current, "model", None) or "sonnet"
     model = questionary.select(
         "Select default model:",
         choices=[
@@ -132,8 +121,8 @@ def _setup_interactive() -> None:
             questionary.Choice("Opus (most capable)", value="opus"),
             questionary.Choice("Haiku (fastest)", value="haiku"),
         ],
-        default="sonnet" if current_model is None else current_model,
-        style=custom_style,
+        default=current_model,
+        style=style,
     ).ask()
 
     if model is None:
@@ -145,7 +134,7 @@ def _setup_interactive() -> None:
     setup_env = questionary.confirm(
         "Configure environment variables (API URL, tokens)?",
         default=False,
-        style=custom_style,
+        style=style,
     ).ask()
 
     if setup_env is None:
@@ -167,15 +156,10 @@ def _setup_interactive() -> None:
         base_url = questionary.text(
             "New ANTHROPIC_BASE_URL (or press Enter to skip):",
             default="",
-            style=custom_style,
+            style=style,
         ).ask()
 
-        if base_url is None:
-            console.print("[yellow]Setup cancelled.[/yellow]")
-            return
-
-        # Update only if user entered a new value
-        if base_url and base_url.strip():
+        if base_url:
             env_vars["ANTHROPIC_BASE_URL"] = base_url.strip()
 
         console.print()
@@ -189,15 +173,10 @@ def _setup_interactive() -> None:
         auth_token = questionary.text(
             "New ANTHROPIC_AUTH_TOKEN (or press Enter to skip):",
             default="",
-            style=custom_style,
+            style=style,
         ).ask()
 
-        if auth_token is None:
-            console.print("[yellow]Setup cancelled.[/yellow]")
-            return
-
-        # Update only if user entered a new value
-        if auth_token and auth_token.strip():
+        if auth_token:
             env_vars["ANTHROPIC_AUTH_TOKEN"] = auth_token.strip()
 
     # Notification hooks
@@ -206,7 +185,7 @@ def _setup_interactive() -> None:
     setup_hooks = questionary.confirm(
         "Configure notification when tasks complete?",
         default=not has_hooks,
-        style=custom_style,
+        style=style,
     ).ask()
 
     if setup_hooks is None:
@@ -214,6 +193,7 @@ def _setup_interactive() -> None:
         return
 
     notification_command: str | None = None
+
     if setup_hooks:
         plat = _get_platform()
         presets = NOTIFICATION_PRESETS.get(plat, {})
@@ -226,7 +206,7 @@ def _setup_interactive() -> None:
                 questionary.Choice("System sound", value="sound"),
                 questionary.Choice("No notification", value="none"),
             ],
-            style=custom_style,
+            style=style,
         ).ask()
 
         if notification_choice is None:
@@ -242,10 +222,10 @@ def _setup_interactive() -> None:
     current.autoApproveWrite = "write" in auto_approve_choices
     current.autoApproveBash = "bash" in auto_approve_choices
     current.autoApproveAll = "all" in auto_approve_choices
-    setattr(current, "model", model)
+    current.model = model
 
     # Always set env vars (even if empty) to ensure they're preserved
-    setattr(current, "env", env_vars)
+    current.env = env_vars
 
     # Apply notification hooks
     if notification_command:
@@ -280,13 +260,13 @@ def _setup_interactive() -> None:
         console.print("  Notification: [green]enabled[/green]")
 
     console.print()
-    confirm = questionary.confirm(
+    save_settings = questionary.confirm(
         "Save these settings?",
         default=True,
-        style=custom_style,
+        style=style,
     ).ask()
 
-    if confirm:
+    if save_settings:
         manager.write_claude_code_settings(current)
         console.print("\n[green]Settings saved successfully![/green]")
     else:
@@ -409,10 +389,10 @@ def _setup_fallback() -> None:
     current.autoApproveWrite = auto_write
     current.autoApproveBash = auto_bash
     current.autoApproveAll = auto_all
-    setattr(current, "model", model)
+    current.model = model
 
     # Always set env vars (even if empty) to ensure they're preserved
-    setattr(current, "env", env_vars)
+    current.env = env_vars
 
     # Apply notification hooks
     if notification_command:

@@ -12,7 +12,7 @@ manager = SettingsManager()
 profile_manager = ProfileManager()
 
 
-def get_all_profiles() -> dict[str, tuple[type | None, str]]:
+def get_all_profiles() -> dict[str, tuple[str, str]]:
     """Get all profiles (builtin + custom).
 
     Returns dict with profile name -> (type, description)

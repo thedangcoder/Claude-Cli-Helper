@@ -4,6 +4,7 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 from rich.console import Console
@@ -11,6 +12,9 @@ from rich.table import Table
 
 from ..models import HookCommand, HooksConfig, StopHook
 from ..settings_manager import SettingsManager
+
+if TYPE_CHECKING:
+    from questionary import Style
 
 console = Console()
 manager = SettingsManager()

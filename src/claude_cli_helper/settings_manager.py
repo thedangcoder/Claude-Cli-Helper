@@ -31,7 +31,8 @@ class SettingsManager:
         if not path.exists():
             return {}
         with open(path, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
 
     def _write_json(self, path: Path, data: dict[str, Any]) -> None:
         """Ghi dict ra file JSON với format đẹp."""

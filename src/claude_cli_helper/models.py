@@ -99,6 +99,9 @@ class ClaudeCodeSettings(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    # Environment variables
+    env: dict[str, str] = Field(default_factory=dict)
+
     # Permission settings
     allowedTools: list[str] = Field(default_factory=list)
     deniedTools: list[str] = Field(default_factory=list)
